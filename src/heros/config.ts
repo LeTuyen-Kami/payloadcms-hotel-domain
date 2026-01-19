@@ -24,6 +24,10 @@ export const hero: Field = {
           value: 'none',
         },
         {
+          label: 'Hotel Hero',
+          value: 'hotelHero',
+        },
+        {
           label: 'High Impact',
           value: 'highImpact',
         },
@@ -66,6 +70,22 @@ export const hero: Field = {
       },
       relationTo: 'media',
       required: true,
+    },
+    {
+      name: 'images',
+      type: 'array',
+      minRows: 1,
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+        },
+      ],
+      admin: {
+        condition: (_, { type } = {}) => type === 'hotelHero',
+      },
     },
   ],
   label: false,
