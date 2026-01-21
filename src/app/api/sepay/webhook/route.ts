@@ -90,6 +90,7 @@ export async function POST(req: Request) {
     const matchedOrder = orders.find((o) => content.includes(o.id.slice(-6)))
 
     if (matchedOrder) {
+      // 1. Update Order
       await payload.update({
         collection: 'orders',
         id: matchedOrder.id,
@@ -99,7 +100,32 @@ export async function POST(req: Request) {
         },
       })
 
-      return NextResponse.json({ success: true, message: 'Order updated' })
+      // 2. Update Related Booking to Confirmed
+      // We need to find the booking associated with this order.
+      // Since we don't have a direct link in Order (yet), we search Bookings
+      // where note contains the Order ID (as set in create-payment).
+
+      const { docs: bookings } = await payload.find({
+        collection: 'bookings',
+        where: {
+          note: {
+            contains: `Auto-created from Order #${matchedOrder.id}`,
+          },
+        },
+        limit: 1,
+      })
+
+      if (bookings.length > 0) {
+        await payload.update({
+          collection: 'bookings',
+          id: bookings[0].id,
+          data: {
+            status: 'confirmed',
+          },
+        })
+      }
+
+      return NextResponse.json({ success: true, message: 'Order and Booking updated' })
     }
 
     return NextResponse.json({ success: false, message: 'Order not found' })
