@@ -11,6 +11,14 @@ import { vi } from 'date-fns/locale'
 import { calculateBookingDuration, BookingType } from '@/utilities/calculateBookingDuration'
 
 export default function BookingPage() {
+  return (
+    <React.Suspense fallback={<div className="container py-20 text-center">Đang tải...</div>}>
+      <BookingContent />
+    </React.Suspense>
+  )
+}
+
+function BookingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const roomId = searchParams.get('room')
@@ -151,7 +159,6 @@ export default function BookingPage() {
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
           Quay lại
         </Link>
-
         {/* Header Section */}
         <div className="mb-10 text-center">
           <h1 className="text-3xl md:text-4xl font-serif text-slate-900 mb-2">Hoàn tất đặt phòng</h1>

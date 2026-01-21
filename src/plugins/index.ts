@@ -5,6 +5,7 @@ import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { importExportPlugin } from '@payloadcms/plugin-import-export'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { Plugin } from 'payload'
 import { authenticated } from '@/access/authenticated'
 import { anyone } from '@/access/anyone'
@@ -104,6 +105,13 @@ export const plugins: Plugin[] = [
       { slug: 'testimonials' },
       { slug: 'media' },
     ],
+  }),
+  vercelBlobStorage({
+    enabled: !!process.env.BLOB_READ_WRITE_TOKEN,
+    collections: {
+      media: true,
+    },
+    token: process.env.BLOB_READ_WRITE_TOKEN,
   }),
   ecommercePlugin({
     access: {

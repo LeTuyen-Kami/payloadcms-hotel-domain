@@ -24,20 +24,19 @@ export const HotelHero: React.FC<Page['hero']> = ({ links, media, images, richTe
       {/* Background Slider */}
       <div className="absolute inset-0 overflow-hidden select-none bg-black">
         {slides.map((slide, index) => {
-           const slideMedia = slide.image
-           if (!slideMedia || typeof slideMedia !== 'object') return null
-           
-           return (
-            <div 
+          const slideMedia = slide.image
+          if (!slideMedia || typeof slideMedia !== 'object') return null
+
+          return (
+            <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                }`}
             >
-               <MediaComponent fill imgClassName="object-cover" priority={index === 0} resource={slideMedia} />
-               <div className="absolute inset-0 bg-black/40" />
+              <MediaComponent fill imgClassName="object-cover" priority={index === 0} resource={slideMedia} />
+              <div className="absolute inset-0 bg-black/40" />
             </div>
-           )
+          )
         })}
       </div>
 
@@ -57,10 +56,12 @@ export const HotelHero: React.FC<Page['hero']> = ({ links, media, images, richTe
           )}
         </div>
       </div>
-      
+
       {/* Booking Bar Overlay - aligned with the bottom area */}
       <div className="container relative z-30">
-        <BookingBar />
+        <React.Suspense fallback={<div className="h-20 bg-white/10 animate-pulse rounded-lg" />}>
+          <BookingBar />
+        </React.Suspense>
       </div>
     </div>
   )

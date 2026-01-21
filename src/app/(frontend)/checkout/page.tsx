@@ -8,6 +8,14 @@ import Image from 'next/image'
 import { useSearchParams } from 'next/navigation' // Add useSearchParams
 
 export default function CheckoutPage() {
+  return (
+    <React.Suspense fallback={<div className="container mx-auto py-20 text-center text-primary">Đang tải thông tin thanh toán...</div>}>
+      <CheckoutContent />
+    </React.Suspense>
+  )
+}
+
+function CheckoutContent() {
   const { items, total, clearCart } = useCart()
   const router = useRouter()
   const searchParams = useSearchParams() // Get search params

@@ -49,6 +49,10 @@ SEPAY_API_KEY=your_sepay_webhook_token   # Mã bí mật bảo vệ Webhook
 SEPAY_ACCOUNT_NUMBER=0123456789          # Số tài khoản nhận tiền
 SEPAY_BANK_BIN=970422                    # Mã BIN ngân hàng (VD: MBBank là 970422)
 SEPAY_ACCOUNT_NAME=NGUYEN VAN A          # Tên chủ tài khoản
+
+# 5. Vercel Blob Storage (Tùy chọn - Để lưu ảnh trên mây)
+# Lấy token này từ Vercel Dashboard -> Storage -> Blob
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxxxxxxxx
 ```
 
 ### 4. Chạy dự án
