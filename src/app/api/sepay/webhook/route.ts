@@ -6,8 +6,19 @@ import { NextResponse } from 'next/server'
 const SEPAY_WEBHOOK_TOKEN = process.env.SEPAY_API_KEY // Or a specific webhook token configured in SePay
 
 export async function POST(req: Request) {
-  // 1. Verify Authentication (optional but recommended if SePay supports sending an Authorization header)
-  // Or verify the payload structure.
+  // 1. Verify Authentication
+  const authHeader = req.headers.get('Authorization')
+
+  // Check if API Key is configured and matches
+  if (SEPAY_WEBHOOK_TOKEN) {
+    // SePay usually sends "Bearer <token>" or just the token depending on config.
+    // We'll check if the header includes our key.
+    if (!authHeader || !authHeader.includes(SEPAY_WEBHOOK_TOKEN)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  } else {
+    console.warn('WARNING: SEPAY_API_KEY is not set in environment variables. Webhook is insecure.')
+  }
 
   // SePay sends JSON body
   let body
