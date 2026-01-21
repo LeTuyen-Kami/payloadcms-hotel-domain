@@ -2,9 +2,13 @@
 
 import React, { useState, useEffect, use } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, CheckCircle, Clock, MapPin, Phone, User } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle, Clock, MapPin, Phone, User, CreditCard, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { submitBooking } from './actions/submitBooking'
+import { useCart } from '@/components/CartProvider'
+import { DateTimePicker } from '@/components/BookingBar/DateTimePicker'
+import { format } from 'date-fns'
+import { vi } from 'date-fns/locale'
+import { calculateBookingDuration, BookingType } from '@/utilities/calculateBookingDuration'
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -12,206 +16,331 @@ export default function BookingPage() {
   const roomId = searchParams.get('room')
   const branchId = searchParams.get('branch')
   const checkInParam = searchParams.get('checkIn')
-  const typeParam = searchParams.get('type') || 'daily'
+  const checkOutParam = searchParams.get('checkOut')
+  const typeParam = searchParams.get('type') as BookingType || 'hourly'
 
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [roomData, setRoomData] = useState<any>(null)
+  const [product, setProduct] = useState<any>(null)
+
+  // States for Date Picker
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [checkIn, setCheckIn] = useState<Date>(checkInParam ? new Date(checkInParam) : new Date())
+  const [checkOut, setCheckOut] = useState<Date | null>(checkOutParam ? new Date(checkOutParam) : null)
+  const [duration, setDuration] = useState<number>(0)
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
     customerEmail: '',
-    checkIn: checkInParam || '',
-    type: typeParam,
     note: '',
+    type: typeParam,
     branch: branchId || '',
   })
 
+  // 1. Fetch Room/Product Data on Load
   useEffect(() => {
-    if (roomId) {
-      // In a real app, we'd fetch room data via an API or server component
-      // For this prototype, if we had an API route we'd use it.
-      // We'll skip detailed room fetch here to keep it simple, 
-      // but ideally we'd show the room title.
+    const fetchProduct = async () => {
+      if (!roomId) return
+
+      try {
+        const res = await fetch(`/api/products?where[room][equals]=${roomId}`)
+        const data = await res.json()
+        const prod = data.docs?.[0]
+        if (prod) {
+          setProduct(prod)
+        }
+      } catch (e) {
+        console.error('Failed to fetch product', e)
+      }
     }
+    fetchProduct()
   }, [roomId])
+
+  // 2. Initialize Duration
+  useEffect(() => {
+    // If dates are present from URL, calc duration
+    if (checkIn) {
+      // Recalculate duration using utility
+      const dur = calculateBookingDuration(formData.type, checkIn, checkOut || undefined)
+      setDuration(dur)
+    }
+  }, [checkIn, checkOut, formData.type])
+
+  const { addItem, clearCart } = useCart()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const result = await submitBooking(formData)
+    try {
+      if (!product) {
+        alert('Phòng này chưa được kích hoạt tính năng thanh toán online.')
+        setLoading(false)
+        return
+      }
 
-    if (result.success) {
-      setSuccess(true)
-      setTimeout(() => {
-        router.push('/')
-      }, 3000)
-    } else {
-      alert('Có lỗi xảy ra: ' + result.error)
+      // Validation
+      if (!formData.customerName || !formData.customerPhone) {
+        alert('Vui lòng nhập đầy đủ Họ tên và Số điện thoại.')
+        setLoading(false)
+        return
+      }
+
+      // Calculate final quantity
+      const quantity = calculateBookingDuration(formData.type, checkIn, checkOut || undefined)
+
+      // Add to Cart
+      clearCart()
+      addItem({
+        product,
+        quantity,
+        validity: {
+          checkIn: checkIn.toISOString(),
+          checkOut: checkOut ? checkOut.toISOString() : ''
+        }
+      })
+
+      // Save Customer Info
+      const customerData = {
+        name: formData.customerName,
+        phone: formData.customerPhone,
+        email: formData.customerEmail,
+        note: formData.note,
+        type: formData.type,
+        bookingType: formData.type,
+        checkIn: checkIn.toISOString(),
+        checkOut: checkOut ? checkOut.toISOString() : undefined,
+        branch: formData.branch,
+        duration: quantity,
+      }
+      localStorage.setItem('checkout-customer', JSON.stringify(customerData))
+
+      // Redirect
+      router.push('/checkout')
+
+    } catch (err: any) {
+      console.error(err)
+      alert('Có lỗi xảy ra: ' + err.message)
+      setLoading(false)
     }
-    setLoading(false)
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="max-w-md w-full bg-white p-12 text-center shadow-2xl border border-primary/20">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-3xl font-serif mb-4 text-slate-900">Đặt phòng thành công!</h1>
-          <p className="text-slate-600 mb-8 font-light italic">
-            Cảm ơn bạn đã lựa chọn Hotel Cloud 9. Nhân viên của chúng tôi sẽ liên hệ với bạn sớm nhất để xác nhận thông tin đặt phòng.
-          </p>
-          <p className="text-xs text-muted-foreground animate-pulse">Đang chuyển hướng về trang chủ...</p>
-        </div>
-      </div>
-    )
+  // Helper to format date display
+  const getDisplayTimeRange = () => {
+    if (!checkOut) return format(checkIn, 'HH:mm - dd/MM/yyyy', { locale: vi })
+    return `${format(checkIn, 'HH:mm dd/MM', { locale: vi })} - ${format(checkOut, 'HH:mm dd/MM', { locale: vi })}`
   }
+
+  // Calculate Total Price Estimate
+  const estimatedPrice = React.useMemo(() => {
+    if (!product) return 0
+    if (formData.type === 'hourly') return (product.priceInVND || 0) * duration
+    if (formData.type === 'daily') return (product.priceInVND || 0) * 24 * duration
+    return 0
+  }, [product, duration, formData.type])
+
+  if (success) return null // Handled in redirect mostly
 
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
-      <div className="h-16 bg-white border-b border-border/40 mb-12" />
+      <div className="h-[113px] bg-white border-b border-border/40 mb-8" />
 
-      <div className="container max-w-4xl">
-        <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">
+      <div className="container max-w-6xl">
+        <Link href={`/home`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Quay lại trang chủ
+          Quay lại
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-          {/* Form Side */}
-          <div className="lg:col-span-3 space-y-8">
-            <div className="space-y-4">
-               <h1 className="text-4xl font-serif text-slate-900 leading-tight">Yêu cầu Đặt phòng</h1>
-               <p className="text-slate-500 font-light max-w-md">Vui lòng cung cấp thông tin của bạn bên dưới. Chúng tôi sẽ chuẩn bị mọi thứ sẵn sàng cho sự hiện diện của bạn.</p>
-            </div>
+        {/* Header Section */}
+        <div className="mb-10 text-center">
+          <h1 className="text-3xl md:text-4xl font-serif text-slate-900 mb-2">Hoàn tất đặt phòng</h1>
+          <p className="text-slate-500 font-light">Chỉ còn một bước nữa thôi, kỳ nghỉ tuyệt vời đang chờ đón bạn!</p>
+        </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4 pt-4 border-t border-slate-200">
-                <h3 className="text-lg font-serif flex items-center gap-2 text-slate-800">
-                   <User className="w-4 h-4 text-primary" />
-                   Thông tin khách hàng
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Họ và tên *</label>
-                      <input 
-                        required
-                        type="text" 
-                        value={formData.customerName}
-                        onChange={(e) => setFormData({...formData, customerName: e.target.value})}
-                        className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900"
-                        placeholder="Nguyễn Văn A"
-                      />
-                   </div>
-                   <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Số điện thoại *</label>
-                      <input 
-                        required
-                        type="tel" 
-                        value={formData.customerPhone}
-                        onChange={(e) => setFormData({...formData, customerPhone: e.target.value})}
-                        className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900"
-                        placeholder="090 123 4567"
-                      />
-                   </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+
+          {/* Main Booking Form */}
+          <div className="lg:col-span-7 space-y-8">
+            <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 shadow-xl border border-border/50 rounded-lg space-y-8">
+
+              {/* 1. Booking Details */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">1</div>
+                  <h3 className="text-lg font-bold uppercase tracking-wider text-slate-800">Chi tiết đặt phòng</h3>
                 </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Địa chỉ Email (Không bắt buộc)</label>
-                   <input 
-                     type="email" 
-                     value={formData.customerEmail}
-                     onChange={(e) => setFormData({...formData, customerEmail: e.target.value})}
-                     className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900"
-                     placeholder="john@example.com"
-                   />
+
+                {/* Booking Type Selector */}
+                <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-lg">
+                  {(['hourly', 'daily'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, type: t })
+                        setCheckOut(null) // Reset checkout when type changes
+                      }}
+                      className={`py-3 text-sm font-bold uppercase tracking-wide rounded-md transition-all ${formData.type === t
+                        ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                        }`}
+                    >
+                      {t === 'hourly' ? 'Theo giờ' : 'Theo ngày'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Date/Time Picker Trigger */}
+                <div className="space-y-2 relative">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Thời gian nhận phòng - Trả phòng</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-lg hover:border-primary transition-colors text-left"
+                  >
+                    <span className="font-semibold text-slate-900">{getDisplayTimeRange()}</span>
+                    <Calendar className="w-5 h-5 text-slate-400" />
+                  </button>
+                  {/* Duration Badge */}
+                  <div className="absolute right-4 top-0 -translate-y-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                    {formData.type === 'hourly' ? `${duration} giờ` : `${duration} ngày`}
+                  </div>
+
+                  {/* Check-out info hint */}
+                  <p className="text-xs text-slate-400 italic">
+                    {formData.type === 'hourly' && `Tự động tính ${duration} giờ kể từ giờ nhận phòng`}
+                    {formData.type === 'daily' && 'Check-out mặc định: 12:00 trưa'}
+                  </p>
+
+                  {showDatePicker && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                      <div className="absolute top-full left-0 mt-2 z-50">
+                        <DateTimePicker
+                          bookingType={formData.type as BookingType}
+                          initialDate={checkIn}
+                          initialDuration={duration}
+                          onApply={(start, end) => {
+                            setCheckIn(start)
+                            if (end) setCheckOut(end)
+                          }}
+                          onClose={() => setShowDatePicker(false)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-200">
-                <h3 className="text-lg font-serif flex items-center gap-2 text-slate-800">
-                   <Calendar className="w-4 h-4 text-primary" />
-                   Chi tiết đặt phòng
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Hình thức đặt</label>
-                      <select 
-                        value={formData.type}
-                        onChange={(e) => setFormData({...formData, type: e.target.value})}
-                        className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900 appearance-none"
-                      >
-                         <option value="hourly">Theo giờ (2h+)</option>
-                         <option value="overnight">Qua đêm</option>
-                         <option value="daily">Theo ngày</option>
-                      </select>
-                   </div>
-                   <div className="space-y-1">
-                      <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ngày & Giờ nhận phòng</label>
-                      <input 
-                        type="datetime-local" 
-                        required
-                        value={formData.checkIn}
-                        onChange={(e) => setFormData({...formData, checkIn: e.target.value})}
-                        className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900"
-                      />
-                   </div>
+              {/* 2. Customer Info */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">2</div>
+                  <h3 className="text-lg font-bold uppercase tracking-wider text-slate-800">Thông tin của bạn</h3>
                 </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Yêu cầu thêm</label>
-                   <textarea 
-                     value={formData.note}
-                     onChange={(e) => setFormData({...formData, note: e.target.value})}
-                     className="w-full bg-white border border-slate-200 px-4 py-3 focus:outline-none focus:border-primary transition-colors text-slate-900 h-24"
-                     placeholder="Chúng tôi có thể hỗ trợ gì thêm cho bạn không? (VD: chuẩn bị nệm thêm, quà kỷ niệm...)"
-                   />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Họ và tên <span className="text-red-500">*</span></label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      placeholder="VD: Nguyễn Văn A"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Số điện thoại <span className="text-red-500">*</span></label>
+                    <input
+                      required
+                      type="tel"
+                      value={formData.customerPhone}
+                      onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      placeholder="VD: 090 123 4567"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Email (Để nhận xác nhận)</label>
+                    <input
+                      type="email"
+                      value={formData.customerEmail}
+                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      placeholder="VD: email@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Ghi chú đặc biệt</label>
+                    <textarea
+                      value={formData.note}
+                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-24 resize-none"
+                      placeholder="Bạn có yêu cầu gì thêm không? (VD: Check-in muộn, trang trí phòng...)"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-primary text-primary-foreground py-5 font-bold tracking-[0.2em] uppercase hover:bg-primary/95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-wait"
-              >
-                {loading ? 'Đang xử lý...' : 'Xác nhận đặt phòng'}
-              </button>
             </form>
           </div>
 
-          {/* Sidebar / Summary */}
-          <div className="lg:col-span-2 space-y-6">
-             <div className="bg-slate-900 text-white p-8 space-y-8">
+          {/* Sidebar / Price Summary */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Product Card */}
+            <div className="bg-slate-900 text-white p-8 rounded-lg shadow-2xl sticky top-24">
+              <div className="flex items-start justify-between mb-8 pb-8 border-b border-slate-800">
                 <div>
-                   <h4 className="text-xl font-serif mb-4">Tại sao nên đặt tại Cloud 9?</h4>
-                   <ul className="space-y-4">
-                      {[
-                        'Cam kết giá tốt nhất',
-                        'Hủy phòng linh hoạt (trước 24h)',
-                        'Xác nhận ngay lập tức',
-                        'Thanh toán đa dạng'
-                      ].map(item => (
-                        <li key={item} className="flex gap-2 text-xs text-slate-400 font-light">
-                           <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                           {item}
-                        </li>
-                      ))}
-                   </ul>
+                  <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Thông tin phòng</p>
+                  <h2 className="text-2xl font-serif text-white mb-1">{product?.title || 'Đang tải...'}</h2>
+                  <p className="text-slate-400 text-sm">
+                    {formData.type === 'hourly' && `${product?.priceInVND?.toLocaleString()}đ / 1 giờ`}
+                    {formData.type === 'daily' && `${((product?.priceInVND || 0) * 24).toLocaleString()}đ / 1 ngày`}
+                  </p>
                 </div>
+              </div>
 
-                <div className="pt-8 border-t border-slate-800 text-xs font-light text-slate-400 space-y-4">
-                   <div className="flex items-start gap-3">
-                      <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-                      <p>Check-in: 14:00<br/>Check-out: 12:00 (Ngày hôm sau)</p>
-                   </div>
-                   <div className="flex items-start gap-3">
-                      <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                      <p>Hotline hỗ trợ: 1900 1234 (24/7)</p>
-                   </div>
+              <div className="space-y-4 mb-8">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Đơn giá:</span>
+                  <span className="font-medium">
+                    {formData.type === 'hourly' && `${product?.priceInVND?.toLocaleString()} VND`}
+                    {formData.type === 'daily' && `${((product?.priceInVND || 0) * 24).toLocaleString()} VND`}
+                  </span>
                 </div>
-             </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Thời gian:</span>
+                  <span className="font-medium">x {duration} {formData.type === 'hourly' ? 'giờ' : 'ngày'}</span>
+                </div>
+                <div className="pt-4 border-t border-slate-800 flex justify-between items-end">
+                  <span className="text-lg font-serif">Tổng tạm tính:</span>
+                  <span className="text-3xl font-bold text-primary">{estimatedPrice.toLocaleString()} VND</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !product}
+                className="w-full bg-primary hover:bg-[#b08d66] text-white py-4 font-bold uppercase tracking-wider rounded transition-all shadow-lg hover:shadow-primary/20 hover:-translate-y-1 mb-4 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {loading ? 'Đang xử lý...' : (
+                    <>
+                      Thanh toán ngay <CreditCard className="w-4 h-4" />
+                    </>
+                  )}
+                </span>
+              </button>
+
+              <p className="text-xs text-center text-slate-500 flex items-center justify-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Cam kết bảo mật thông tin
+              </p>
+            </div>
           </div>
+
         </div>
       </div>
     </main>

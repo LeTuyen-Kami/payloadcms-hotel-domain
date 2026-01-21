@@ -6,6 +6,10 @@ import { slugField } from 'payload'
 
 export const Branches: CollectionConfig = {
   slug: 'branches',
+  labels: {
+    singular: 'Chi nhánh',
+    plural: 'Quản lý Chi nhánh',
+  },
   access: {
     create: authenticated,
     delete: authenticated,
@@ -20,33 +24,36 @@ export const Branches: CollectionConfig = {
       name: 'title',
       type: 'text',
       required: true,
-      label: 'Branch Name',
+      label: 'Tên chi nhánh',
     },
     {
       name: 'address',
       type: 'textarea',
       required: true,
+      label: 'Địa chỉ',
     },
     {
       name: 'mapLink',
       type: 'text',
-      label: 'Google Maps Link',
+      label: 'Link Google Maps',
     },
     {
       name: 'phone',
       type: 'text',
       required: true,
+      label: 'Số điện thoại',
     },
     {
       name: 'email',
       type: 'email',
+      label: 'Email liên hệ',
     },
     {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
       required: true,
-      label: 'Main Branch Image',
+      label: 'Ảnh đại diện chi nhánh',
     },
     slugField(),
   ],

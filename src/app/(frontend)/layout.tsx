@@ -15,6 +15,7 @@ import { draftMode } from 'next/headers'
 
 import './globals.css'
 import { getServerSideURL } from '@/utilities/getURL'
+import { CartProvider } from '@/components/CartProvider'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()
@@ -33,12 +34,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               preview: isEnabled,
             }}
           />
-
-          <Header />
-          <main className="pt-[140px] md:pt-[120px]">
+          <CartProvider>
+            <Header />
             {children}
-          </main>
-          <Footer />
+            <Footer />
+          </CartProvider>
         </Providers>
       </body>
     </html>

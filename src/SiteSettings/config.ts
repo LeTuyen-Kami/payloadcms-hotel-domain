@@ -5,6 +5,7 @@ import { authenticated } from '../access/authenticated'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
+  label: 'Cài đặt chung',
   access: {
     read: anyone,
     update: authenticated,
@@ -13,19 +14,19 @@ export const SiteSettings: GlobalConfig = {
     {
       name: 'general',
       type: 'group',
-      label: 'General Settings',
+      label: 'Cấu hình chung',
       fields: [
         {
           name: 'siteTitle',
           type: 'text',
-          label: 'Site Title',
+          label: 'Tiêu đề website',
           defaultValue: 'Cloud9 Hotel',
         },
         {
           name: 'logo',
           type: 'upload',
           relationTo: 'media',
-          label: 'Site Logo',
+          label: 'Logo',
         },
         {
           name: 'favicon',
@@ -38,56 +39,90 @@ export const SiteSettings: GlobalConfig = {
     {
       name: 'contact',
       type: 'group',
-      label: 'Contact Information',
+      label: 'Thông tin liên hệ',
       fields: [
         {
           name: 'hotline',
           type: 'text',
-          label: 'Main Hotline',
+          label: 'Hotline chính',
         },
         {
           name: 'email',
           type: 'email',
-          label: 'Contact Email',
+          label: 'Email liên hệ',
         },
         {
           name: 'address',
           type: 'textarea',
-          label: 'Headquarters Address',
+          label: 'Địa chỉ trụ sở',
         },
       ],
     },
     {
       name: 'social',
       type: 'group',
-      label: 'Social Media',
+      label: 'Mạng xã hội',
       fields: [
         {
           name: 'facebook',
           type: 'text',
-          label: 'Facebook URL',
+          label: 'Link Facebook',
         },
         {
           name: 'zalo',
           type: 'text',
-          label: 'Zalo URL',
+          label: 'Link Zalo',
         },
       ],
     },
     {
       name: 'footer',
       type: 'group',
-      label: 'Footer Content',
+      label: 'Nội dung chân trang',
       fields: [
         {
           name: 'description',
           type: 'textarea',
-          label: 'Footer Description',
+          label: 'Mô tả chân trang',
         },
         {
           name: 'copyright',
           type: 'text',
-          label: 'Copyright Text',
+          label: 'Bản quyền',
+        },
+      ],
+    },
+    {
+      name: 'googleMaps',
+      type: 'group',
+      label: 'Tích hợp Google Maps',
+      fields: [
+        {
+          name: 'placeId',
+          type: 'text',
+          label: 'Google Place ID',
+          required: false,
+          admin: {
+            description: 'Find your Place ID using Google Place ID Finder',
+          },
+        },
+        {
+          name: 'apiKey',
+          type: 'text',
+          label: 'Google Maps API Key',
+          required: false,
+          admin: {
+            description: 'Must have Places API enabled',
+          },
+        },
+        {
+          name: 'syncButton',
+          type: 'ui',
+          admin: {
+            components: {
+              Field: '@/components/SyncGoogleReviews',
+            },
+          },
         },
       ],
     },

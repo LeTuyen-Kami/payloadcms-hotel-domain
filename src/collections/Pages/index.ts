@@ -27,6 +27,10 @@ import {
 
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
+  labels: {
+    singular: 'Trang',
+    plural: 'Danh sách Trang',
+  },
   access: {
     create: authenticated,
     delete: authenticated,
@@ -63,13 +67,14 @@ export const Pages: CollectionConfig<'pages'> = {
       name: 'title',
       type: 'text',
       required: true,
+      label: 'Tiêu đề trang',
     },
     {
       type: 'tabs',
       tabs: [
         {
           fields: [hero],
-          label: 'Hero',
+          label: 'Hero (Đầu trang)',
         },
         {
           fields: [
@@ -93,11 +98,11 @@ export const Pages: CollectionConfig<'pages'> = {
               },
             },
           ],
-          label: 'Content',
+          label: 'Nội dung chính',
         },
         {
           name: 'meta',
-          label: 'SEO',
+          label: 'Cấu hình SEO',
           fields: [
             OverviewField({
               titlePath: 'meta.title',

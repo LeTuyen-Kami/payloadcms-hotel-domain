@@ -8,238 +8,245 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/utilities/cn'
 
 interface DateTimePickerProps {
-  bookingType: 'hourly' | 'overnight' | 'daily'
-  onApply: (start: Date, end: Date | null, duration?: number) => void
-  onClose: () => void
-  label?: string
+    bookingType: 'hourly' | 'daily'
+    onApply: (start: Date, end: Date | null, duration?: number) => void
+    onClose: () => void
+    label?: string
+    initialDate?: Date
+    initialDuration?: number
 }
 
-export const DateTimePicker: React.FC<DateTimePickerProps> = ({ bookingType, onApply, onClose, label }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  
-  // Date selection states
-  const [startDay, setStartDay] = useState<Date>(new Date()) // Check-in day (00:00)
-  const [endDay, setEndDay] = useState<Date | null>(null) // Check-out day (Daily mode only)
-  
-  const [selectedTime, setSelectedTime] = useState<string>('12:00')
-  const [duration, setDuration] = useState<number>(2) // Hourly duration
-  
-  // Reset endDay when type changes
-  useEffect(() => {
-    if (bookingType !== 'daily') setEndDay(null)
-  }, [bookingType])
+export const DateTimePicker: React.FC<DateTimePickerProps> = ({ bookingType, onApply, onClose, label, initialDate, initialDuration }) => {
+    const [currentMonth, setCurrentMonth] = useState(initialDate || new Date())
 
-  // Generate calendar days
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(monthStart)
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }) // Monday start
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
-  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate })
+    // Date selection states
+    const [startDay, setStartDay] = useState<Date>(initialDate || new Date()) // Check-in day (00:00)
+    const [endDay, setEndDay] = useState<Date | null>(null) // Check-out day (Daily mode only)
 
-  // Time slots logic...
-  const timeSlots = []
-  for (let i = 0; i < 24; i++) {
-    timeSlots.push(`${i.toString().padStart(2, '0')}:00`)
-    timeSlots.push(`${i.toString().padStart(2, '0')}:30`)
-  }
+    // Init time from initialDate
+    const [selectedTime, setSelectedTime] = useState<string>(() => {
+        if (initialDate) {
+            return format(initialDate, 'HH:mm')
+        }
+        return '12:00'
+    })
+    const [duration, setDuration] = useState<number>(initialDuration || 2) // Hourly duration
 
-  const durationSlots = [1, 2, 3, 4, 5, 6, 7, 8]
+    // Reset endDay when type changes
+    useEffect(() => {
+        if (bookingType !== 'daily') setEndDay(null)
+    }, [bookingType])
 
-  const handleDayClick = (day: Date) => {
-    if (bookingType === 'daily') {
-        if (!startDay || (startDay && endDay)) {
-            // Reset start date
-            setStartDay(day)
-            setEndDay(null)
-        } else if (day > startDay) {
-            // Set end date
-            setEndDay(day)
+    // Generate calendar days
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(monthStart)
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }) // Monday start
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate })
+
+    // Time slots logic...
+    const timeSlots = []
+    for (let i = 0; i < 24; i++) {
+        timeSlots.push(`${i.toString().padStart(2, '0')}:00`)
+        timeSlots.push(`${i.toString().padStart(2, '0')}:30`)
+    }
+
+    const durationSlots = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    const handleDayClick = (day: Date) => {
+        if (bookingType === 'daily') {
+            if (!startDay || (startDay && endDay)) {
+                // Reset start date
+                setStartDay(day)
+                setEndDay(null)
+            } else if (day > startDay) {
+                // Set end date
+                setEndDay(day)
+            } else {
+                // If clicked earlier than start day, update start day
+                setStartDay(day)
+            }
         } else {
-            // If clicked earlier than start day, update start day
+            // Hourly/Overnight: just single day
             setStartDay(day)
         }
-    } else {
-        // Hourly/Overnight: just single day
-        setStartDay(day)
     }
-  }
 
-  const handleApply = () => {
-    const [hours, minutes] = selectedTime.split(':').map(Number)
-    // Construct checkin datetime
-    const start = setMinutes(setHours(startDay, hours), minutes)
-    
-    let end = null
-    if (bookingType === 'hourly') {
-        end = addHours(start, duration)
-        onApply(start, end, duration)
-    } else if (bookingType === 'overnight') {
-        end = setMinutes(setHours(addHours(startDay, 24), 12), 0) // Checkout 12:00 next day
-        onApply(start, end)
-    } else {
-        // Daily
-        const effectiveEndDay = endDay || addHours(startDay, 24) // Default 1 day if not selected
-        end = setMinutes(setHours(effectiveEndDay, 12), 0) // Checkout 12:00
-        onApply(start, end)
+    const handleApply = () => {
+        const [hours, minutes] = selectedTime.split(':').map(Number)
+        // Construct checkin datetime
+        const start = setMinutes(setHours(startDay, hours), minutes)
+
+        let end = null
+        if (bookingType === 'hourly') {
+            end = addHours(start, duration)
+            onApply(start, end, duration)
+        } else {
+            // Daily
+            const effectiveEndDay = endDay || addHours(startDay, 24) // Default 1 day if not selected
+            end = setMinutes(setHours(effectiveEndDay, 12), 0) // Checkout 12:00
+            onApply(start, end)
+        }
+        onClose()
     }
-    onClose()
-  }
 
-  // Calculate generic check out preview
-  const getCheckoutPreview = () => {
-      if (bookingType === 'hourly') {
-          const [hours, minutes] = selectedTime.split(':').map(Number)
-          const start = setMinutes(setHours(startDay, hours), minutes)
-          const end = addHours(start, duration)
-          return format(end, 'HH:mm dd/MM', { locale: vi })
-      }
-      if (bookingType === 'overnight') {
-           const nextDay = addHours(startDay, 24)
-           return `12:00 ${format(nextDay, 'dd/MM', { locale: vi })}`
-      }
-      if (bookingType === 'daily') {
-          const effectiveEndDay = endDay || addHours(startDay, 24)
-          return `12:00 ${format(effectiveEndDay, 'dd/MM', { locale: vi })}`
-      }
-      return '...'
-  }
-  
-  const getDurationPreview = () => {
-      if(bookingType === 'hourly') return `${duration} giờ`
-      if(bookingType === 'overnight') return '1 đêm'
-      if(bookingType === 'daily') {
-          if (!endDay) return '1 ngày'
-          const diffTime = Math.abs(endDay.getTime() - startDay.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-          return `${diffDays} ngày`
-      }
-      return ''
-  }
+    // Calculate generic check out preview
+    const getCheckoutPreview = () => {
+        if (bookingType === 'hourly') {
+            const [hours, minutes] = selectedTime.split(':').map(Number)
+            const start = setMinutes(setHours(startDay, hours), minutes)
+            const end = addHours(start, duration)
+            return format(end, 'HH:mm dd/MM', { locale: vi })
+        }
+        if (bookingType === 'daily') {
+            const effectiveEndDay = endDay || addHours(startDay, 24)
+            return `12:00 ${format(effectiveEndDay, 'dd/MM', { locale: vi })}`
+        }
+        return '...'
+    }
 
-  return (
-    <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-0 w-[800px] flex overflow-hidden absolute top-full left-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-      {/* Left Pane: Calendar */}
-      <div className="w-1/2 p-6 border-r border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded-full">
-            <ChevronLeft className="w-5 h-5 text-gray-500" />
-          </button>
-          <div className="font-bold text-gray-800 capitalize">
-            {format(currentMonth, 'MMMM yyyy', { locale: vi })}
-          </div>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded-full">
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
+    const getDurationPreview = () => {
+        if (bookingType === 'hourly') return `${duration} giờ`
+        if (bookingType === 'daily') {
+            if (!endDay) return '1 ngày'
+            const diffTime = Math.abs(endDay.getTime() - startDay.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return `${diffDays} ngày`
+        }
+        return ''
+    }
 
-        <div className="grid grid-cols-7 mb-2 text-center">
-            {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
-                <div key={d} className="text-xs font-bold text-gray-400 py-1">{d}</div>
-            ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, idx) => {
-                const isCurrentMonth = isSameMonth(day, monthStart)
-                const isTodayDate = isToday(day)
-                
-                // Selection logic
-                const isStart = isSameDay(day, startDay)
-                const isEnd = endDay && isSameDay(day, endDay)
-                const isInRange = bookingType === 'daily' && startDay && endDay && day > startDay && day < endDay
-                
-                const isSelected = isStart || isEnd
-
-                return (
-                    <button
-                        key={idx}
-                        onClick={() => handleDayClick(day)}
-                        className={cn(
-                            "h-10 w-10 text-sm rounded-full flex items-center justify-center transition-all relative z-10",
-                            !isCurrentMonth && "text-gray-300",
-                            isCurrentMonth && "text-gray-700 hover:bg-gray-100",
-                            isInRange && "bg-primary/20",
-                            isSelected && "bg-primary text-white hover:bg-primary"
-                        )}
-                    >
-                        {format(day, 'd')}
+    return (
+        <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-0 w-[800px] flex overflow-hidden absolute top-full left-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+            {/* Left Pane: Calendar */}
+            <div className="w-1/2 p-6 border-r border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                    <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded-full">
+                        <ChevronLeft className="w-5 h-5 text-gray-500" />
                     </button>
-                )
-            })}
-        </div>
-      </div>
-
-      {/* Right Pane: Time & Layout */}
-      <div className="w-1/2 p-6 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-6 text-gray-800">
-             <ArrowRight className="w-5 h-5 bg-gray-100 rounded p-1" />
-             <span className="font-bold">Giờ nhận phòng</span>
-        </div>
-
-        {/* Time Slots */}
-        <div className="mb-8">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                {timeSlots.map(time => (
-                    <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={cn(
-                            "px-4 py-2 rounded-lg border text-sm whitespace-nowrap transition-all",
-                            selectedTime === time 
-                                ? "border-primary text-primary bg-primary/5 font-bold" 
-                                : "border-gray-200 text-gray-600 hover:border-gray-300"
-                        )}
-                    >
-                        {time}
+                    <div className="font-bold text-gray-800 capitalize">
+                        {format(currentMonth, 'MMMM yyyy', { locale: vi })}
+                    </div>
+                    <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded-full">
+                        <ChevronRight className="w-5 h-5 text-gray-500" />
                     </button>
-                ))}
-            </div>
-        </div>
+                </div>
 
-        {/* Duration Controls - Always show duration info, but controls specific to type */}
-        <div className="mb-auto">
-             <div className="flex items-center gap-2 mb-4 text-gray-800">
-                <Clock className="w-5 h-5 bg-gray-100 rounded p-1" />
-                <span className="font-bold">Thời gian sử dụng</span>
-            </div>
-            
-            {bookingType === 'hourly' ? (
-                <div className="flex gap-2 flex-wrap">
-                    {durationSlots.map(h => (
-                        <button
-                            key={h}
-                            onClick={() => setDuration(h)}
-                            className={cn(
-                                "w-16 py-2 rounded-lg border text-sm transition-all",
-                                duration === h
-                                    ? "border-primary text-primary bg-primary/5 font-bold"
-                                    : "border-gray-200 text-gray-600 hover:border-gray-300"
-                            )}
-                        >
-                            {h} GIỜ
-                        </button>
+                <div className="grid grid-cols-7 mb-2 text-center">
+                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => (
+                        <div key={d} className="text-xs font-bold text-gray-400 py-1">{d}</div>
                     ))}
                 </div>
-            ) : (
-                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium">
-                    {getDurationPreview()}
-                 </div>
-            )}
-        </div>
+                <div className="grid grid-cols-7 gap-1">
+                    {calendarDays.map((day, idx) => {
+                        const isCurrentMonth = isSameMonth(day, monthStart)
+                        const isTodayDate = isToday(day)
 
-        {/* Check Out Preview */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-gray-600 font-medium">
-                <ArrowRight className="w-4 h-4" />
-                Trả phòng (dự kiến)
+                        // Selection logic
+                        const isStart = isSameDay(day, startDay)
+                        const isEnd = endDay && isSameDay(day, endDay)
+                        const isInRange = bookingType === 'daily' && startDay && endDay && day > startDay && day < endDay
+
+                        const isSelected = isStart || isEnd
+
+                        const isBeforeToday = day < new Date(new Date().setHours(0, 0, 0, 0))
+
+                        return (
+                            <button
+                                type="button"
+                                key={idx}
+                                disabled={isBeforeToday}
+                                onClick={() => !isBeforeToday && handleDayClick(day)}
+                                className={cn(
+                                    "h-10 w-10 text-sm rounded-full flex items-center justify-center transition-all relative z-10",
+                                    !isCurrentMonth && "text-gray-300",
+                                    isCurrentMonth && "text-gray-700 hover:bg-gray-100",
+                                    isBeforeToday && "text-gray-200 cursor-not-allowed hover:bg-transparent",
+                                    isInRange && "bg-primary/20",
+                                    isSelected && "bg-primary text-white hover:bg-primary"
+                                )}
+                            >
+                                {format(day, 'd')}
+                            </button>
+                        )
+                    })}
+                </div>
             </div>
-             <div className="font-bold text-gray-800">{getCheckoutPreview()}</div>
-        </div>
 
-        <Button onClick={handleApply} className="w-full bg-[#1a4b6e] hover:bg-[#153d5a] text-white py-6 text-lg font-bold uppercase rounded-lg">
-            ÁP DỤNG
-        </Button>
-      </div>
-    </div>
-  )
+            {/* Right Pane: Time & Layout */}
+            <div className="w-1/2 p-6 flex flex-col">
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-6 text-gray-800">
+                    <ArrowRight className="w-5 h-5 bg-gray-100 rounded p-1" />
+                    <span className="font-bold">Giờ nhận phòng</span>
+                </div>
+
+                {/* Time Slots */}
+                <div className="mb-8">
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                        {timeSlots.map(time => (
+                            <button
+                                type="button"
+                                key={time}
+                                onClick={() => setSelectedTime(time)}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg border text-sm whitespace-nowrap transition-all",
+                                    selectedTime === time
+                                        ? "border-primary text-primary bg-primary/5 font-bold"
+                                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                )}
+                            >
+                                {time}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Duration Controls - Always show duration info, but controls specific to type */}
+                <div className="mb-auto">
+                    <div className="flex items-center gap-2 mb-4 text-gray-800">
+                        <Clock className="w-5 h-5 bg-gray-100 rounded p-1" />
+                        <span className="font-bold">Thời gian sử dụng</span>
+                    </div>
+
+                    {bookingType === 'hourly' ? (
+                        <div className="flex gap-2 flex-wrap">
+                            {durationSlots.map(h => (
+                                <button
+                                    type="button"
+                                    key={h}
+                                    onClick={() => setDuration(h)}
+                                    className={cn(
+                                        "w-16 py-2 rounded-lg border text-sm transition-all",
+                                        duration === h
+                                            ? "border-primary text-primary bg-primary/5 font-bold"
+                                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                    )}
+                                >
+                                    {h} GIỜ
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium">
+                            {getDurationPreview()}
+                        </div>
+                    )}
+                </div>
+
+                {/* Check Out Preview */}
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-600 font-medium">
+                        <ArrowRight className="w-4 h-4" />
+                        Trả phòng (dự kiến)
+                    </div>
+                    <div className="font-bold text-gray-800">{getCheckoutPreview()}</div>
+                </div>
+
+                <Button type="button" onClick={handleApply} className="w-full bg-[#1a4b6e] hover:bg-[#153d5a] text-white py-6 text-lg font-bold uppercase rounded-lg">
+                    ÁP DỤNG
+                </Button>
+            </div>
+        </div>
+    )
 }

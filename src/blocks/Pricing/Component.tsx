@@ -43,10 +43,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = async (props) => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700">Loại phòng</th>
-                  <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700 text-center">2 giờ đầu</th>
-                  <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700 text-center">Giờ sau</th>
-                  <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700 text-center">Qua đêm</th>
-                  <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700 text-center">Theo ngày</th>
+                  <th className="px-6 py-5 text-sm font-bold uppercase tracking-wider text-gray-700 text-center">Giá 1 giờ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -59,16 +56,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = async (props) => {
                       )}
                     </td>
                     <td className="px-6 py-6 text-center text-blue-600 font-semibold italic text-lg whitespace-nowrap">
-                      {formatCurrency(room.pricing?.firstTwoHours as number | undefined)}
-                    </td>
-                    <td className="px-6 py-6 text-center text-gray-700 font-medium whitespace-nowrap">
-                      {formatCurrency(room.pricing?.additionalHour as number | undefined)}
-                    </td>
-                    <td className="px-6 py-6 text-center text-indigo-600 font-semibold whitespace-nowrap">
-                      {formatCurrency(room.pricing?.overnight as number | undefined)}
-                    </td>
-                    <td className="px-6 py-6 text-center text-green-600 font-bold whitespace-nowrap">
-                      {formatCurrency(room.pricing?.daily as number | undefined)}
+                      {formatCurrency(room.pricing?.hourly as number | undefined)}
                     </td>
                   </tr>
                 ))}

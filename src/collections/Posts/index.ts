@@ -29,6 +29,10 @@ import { slugField } from 'payload'
 
 export const Posts: CollectionConfig<'posts'> = {
   slug: 'posts',
+  labels: {
+    singular: 'Tin tức',
+    plural: 'Tin tức & Sự kiện',
+  },
   access: {
     create: authenticated,
     delete: authenticated,
@@ -70,6 +74,7 @@ export const Posts: CollectionConfig<'posts'> = {
       name: 'title',
       type: 'text',
       required: true,
+      label: 'Tiêu đề bài viết',
     },
     {
       type: 'tabs',
@@ -80,6 +85,7 @@ export const Posts: CollectionConfig<'posts'> = {
               name: 'heroImage',
               type: 'upload',
               relationTo: 'media',
+              label: 'Ảnh đại diện',
             },
             {
               name: 'content',
@@ -100,13 +106,14 @@ export const Posts: CollectionConfig<'posts'> = {
               required: true,
             },
           ],
-          label: 'Content',
+          label: 'Nội dung',
         },
         {
           fields: [
             {
               name: 'relatedPosts',
               type: 'relationship',
+              label: 'Bài viết liên quan',
               admin: {
                 position: 'sidebar',
               },
@@ -123,6 +130,7 @@ export const Posts: CollectionConfig<'posts'> = {
             {
               name: 'categories',
               type: 'relationship',
+              label: 'Danh mục',
               admin: {
                 position: 'sidebar',
               },
@@ -130,11 +138,11 @@ export const Posts: CollectionConfig<'posts'> = {
               relationTo: 'categories',
             },
           ],
-          label: 'Meta',
+          label: 'Thông tin thêm',
         },
         {
           name: 'meta',
-          label: 'SEO',
+          label: 'Cấu hình SEO',
           fields: [
             OverviewField({
               titlePath: 'meta.title',
@@ -184,6 +192,7 @@ export const Posts: CollectionConfig<'posts'> = {
     {
       name: 'authors',
       type: 'relationship',
+      label: 'Tác giả',
       admin: {
         position: 'sidebar',
       },

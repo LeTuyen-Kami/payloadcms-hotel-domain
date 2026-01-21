@@ -65,6 +65,7 @@ const seed = async (): Promise<void> => {
     payload.delete({ collection: 'branches', where: { id: { exists: true } }, context: { disableRevalidate: true } }),
     payload.delete({ collection: 'testimonials', where: { id: { exists: true } }, context: { disableRevalidate: true } }),
     payload.delete({ collection: 'pages', where: { id: { exists: true } }, context: { disableRevalidate: true } }),
+    payload.delete({ collection: 'products', where: { id: { exists: true } }, context: { disableRevalidate: true } }),
   ])
 
   // 3. CREATE BRANCH
@@ -89,7 +90,7 @@ const seed = async (): Promise<void> => {
       image: 'luxury_standard_room',
       description: 'Phòng tiêu chuẩn ấm cúng, phù hợp cho các cặp đôi cần không gian riêng tư và yên tĩnh. Trang bị đầy đủ tiện nghi cơ bản.',
       amenities: ['tv', 'ac', 'wifi'],
-      pricing: { firstTwoHours: 180000, additionalHour: 40000, overnight: 450000, daily: 800000 }
+      pricing: { hourly: 150000 }
     },
     {
       title: 'Phòng Deluxe - Sang trọng',
@@ -97,7 +98,7 @@ const seed = async (): Promise<void> => {
       image: 'deluxe_room_interior',
       description: 'Không gian rộng rãi hơn với nội thất Gỗ cao cấp, mang lại cảm giác ấm áp và sang trọng bậc nhất.',
       amenities: ['tv', 'ac', 'wifi', 'fridge'],
-      pricing: { firstTwoHours: 250000, additionalHour: 50000, overnight: 550000, daily: 1000000 }
+      pricing: { hourly: 250000 }
     },
     {
       title: 'Phòng Suite - Cao cấp',
@@ -105,7 +106,7 @@ const seed = async (): Promise<void> => {
       image: 'luxury_suite_bathroom',
       description: 'Trải nghiệm đẳng cấp với bồn tắm sục và view thành phố cực đẹp. Lựa chọn hoàn hảo cho những dịp đặc biệt.',
       amenities: ['tv', 'ac', 'wifi', 'fridge', 'bathtub', 'hairdryer'],
-      pricing: { firstTwoHours: 350000, additionalHour: 70000, overnight: 750000, daily: 1400000 }
+      pricing: { hourly: 350000 }
     },
     {
       title: 'Phòng VIP - Đặc biệt',
@@ -113,13 +114,14 @@ const seed = async (): Promise<void> => {
       image: 'luxury_vip_room_king_bed',
       description: 'Căn phòng lộng lẫy nhất tại Cloud 9 với thiết kế phong cách Châu Âu, giường King-size và dịch vụ đi kèm cao cấp.',
       amenities: ['tv', 'ac', 'wifi', 'fridge', 'bathtub', 'hairdryer'],
-      pricing: { firstTwoHours: 500000, additionalHour: 100000, overnight: 1000000, daily: 1800000 }
+      pricing: { hourly: 500000 }
     }
   ]
 
+  const createdRooms: Record<string, string> = {}
   for (const room of roomTypes) {
     const mainImageId = mediaMap[room.image]
-    await payload.create({
+    const createdRoom = await payload.create({
       collection: 'rooms',
       data: {
         title: room.title,
@@ -129,6 +131,36 @@ const seed = async (): Promise<void> => {
         pricing: room.pricing,
         branch: mainBranch.id,
         gallery: mainImageId ? [{ image: mainImageId }] : [],
+      } as any,
+      context: { disableRevalidate: true },
+    })
+    createdRooms[room.slug] = createdRoom.id
+
+    // Create a corresponding Product for each room for Ecommerce flow
+    await payload.create({
+      collection: 'products',
+      data: {
+        title: `${room.title.split('-')[0].trim()}`,
+        slug: `room-service-${room.slug}`,
+        _status: 'published',
+        price: room.pricing.hourly, // Use hourly as default product price
+        room: createdRoom.id,
+        layout: [
+          {
+            blockType: 'content',
+            content: {
+              root: {
+                type: 'root',
+                children: [
+                  {
+                    type: 'paragraph',
+                    children: [{ type: 'text', text: room.description }],
+                  }
+                ],
+              }
+            }
+          }
+        ]
       } as any,
       context: { disableRevalidate: true },
     })

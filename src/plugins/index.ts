@@ -1,9 +1,12 @@
-import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
+import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
+import { fields, formBuilderPlugin } from '@payloadcms/plugin-form-builder'
 import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
 import { Plugin } from 'payload'
+import { authenticated } from '@/access/authenticated'
+import { anyone } from '@/access/anyone'
 import { revalidateRedirects } from '@/hooks/revalidateRedirects'
 import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
@@ -87,6 +90,247 @@ export const plugins: Plugin[] = [
       fields: ({ defaultFields }) => {
         return [...defaultFields, ...searchFields]
       },
+    },
+  }),
+  ecommercePlugin({
+    access: {
+      adminOnlyFieldAccess: ({ req }) => !!req.user,
+      adminOrPublishedStatus: ({ req }) => !!req.user,
+      isAdmin: ({ req }) => !!req.user,
+      isDocumentOwner: ({ req }) => !!req.user,
+      publicAccess: () => true,
+    },
+    customers: {
+      slug: 'users',
+    },
+    currencies: {
+      defaultCurrency: 'VND',
+      supportedCurrencies: [
+        {
+          code: 'VND',
+          decimals: 0,
+          label: 'Việt Nam Đồng',
+          symbol: '₫',
+        },
+      ],
+    },
+    products: {
+      productsCollectionOverride: ({ defaultCollection }) => ({
+        ...defaultCollection,
+        access: {
+          read: () => true,
+        },
+        admin: {
+          ...defaultCollection.admin,
+          useAsTitle: 'title',
+          defaultColumns: ['title', 'room', 'priceInVND'],
+        },
+        labels: {
+          singular: 'Sản phẩm',
+          plural: 'Sản phẩm',
+        },
+        hooks: {
+          ...defaultCollection.hooks,
+          beforeChange: [
+            ...(defaultCollection.hooks?.beforeChange || []),
+            async ({ data, req }) => {
+              if (data.room) {
+                try {
+                  const room = await req.payload.findByID({
+                    collection: 'rooms',
+                    id: typeof data.room === 'object' ? data.room.id : data.room,
+                  })
+                  if (room && room.pricing?.hourly) {
+                    data.priceInVND = room.pricing.hourly
+                    data.priceInVNDEnabled = true
+                  }
+                } catch (e) {
+                  // ignore error
+                }
+              }
+              return data
+            },
+          ],
+        },
+        fields: [
+          {
+            name: 'title',
+            type: 'text',
+            required: true,
+            label: 'Tên sản phẩm',
+          },
+          {
+            name: 'room',
+            type: 'relationship',
+            relationTo: 'rooms',
+            label: 'Phòng liên kết',
+            admin: {
+              description: 'Chọn phòng để tự động điền giá',
+            },
+          },
+          ...defaultCollection.fields.filter((field) => {
+            const fieldsToRemove = ['stock', 'enableVariants', 'hasVariants', 'inventory']
+            return !('name' in field && fieldsToRemove.includes(field.name))
+          }),
+          {
+            name: 'roomPriceSync',
+            type: 'ui',
+            admin: {
+              components: {
+                Field: '@/components/RoomPriceSync',
+              },
+            },
+          },
+        ],
+      }),
+    },
+    carts: {
+      cartsCollectionOverride: ({ defaultCollection }: any) => ({
+        ...defaultCollection,
+        labels: {
+          singular: 'Giỏ hàng',
+          plural: 'Giỏ hàng',
+        },
+      }),
+    },
+    orders: {
+      ordersCollectionOverride: ({ defaultCollection }: any) => ({
+        ...defaultCollection,
+        labels: {
+          singular: 'Đơn hàng',
+          plural: 'Đơn hàng',
+        },
+        admin: {
+          ...defaultCollection.admin,
+          defaultColumns: [
+            'createdAt',
+            'customerName',
+            'bookingRoom',
+            'bookingDuration',
+            'checkIn',
+            'checkOut',
+            'sepayPaymentStatus',
+            'total',
+          ],
+          useAsTitle: 'customerName', // Use customer name as title if possible, or keep default
+        },
+        fields: [
+          ...defaultCollection.fields.filter((field: any) => {
+            // specific filter logic: remove 'customer' (Khách hàng), 'transactions' (Giao dịch)
+            if (field.name === 'customer') return false
+            if (field.name === 'orderedBy') return false // Keep just in case
+            if (field.name === 'transactions') return false
+
+            // Filter out customerEmail so we can use our own definition
+            if (field.name === 'customerEmail') return false
+
+            // Prevent duplication of other manually added fields if they ever get added to defaults
+            if (['customerName', 'customerPhone', 'note', 'status'].includes(field.name))
+              return false
+
+            return true
+          }),
+          {
+            name: 'customerName',
+            type: 'text',
+            label: 'Tên khách hàng',
+            admin: {
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'customerPhone',
+            type: 'text',
+            label: 'Số điện thoại',
+            admin: {
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'customerEmail',
+            type: 'email',
+            label: 'Email khách hàng',
+            admin: {
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'bookingRoom',
+            type: 'text',
+            label: 'Phòng',
+            admin: {
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'bookingDuration',
+            type: 'text',
+            label: 'Thời lượng',
+            admin: {
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'checkIn',
+            type: 'date',
+            label: 'Check-in',
+            admin: {
+              date: {
+                pickerAppearance: 'dayAndTime',
+              },
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'checkOut',
+            type: 'date',
+            label: 'Check-out',
+            admin: {
+              date: {
+                pickerAppearance: 'dayAndTime',
+              },
+              position: 'sidebar',
+            },
+          },
+          {
+            name: 'note',
+            type: 'textarea',
+            label: 'Ghi chú',
+          },
+          {
+            name: 'sepayTransactionId',
+            type: 'text',
+            admin: {
+              readOnly: true,
+              position: 'sidebar',
+            },
+            label: 'Mã giao dịch SePay',
+          },
+          {
+            name: 'sepayPaymentStatus',
+            type: 'select',
+            options: [
+              { label: 'Chưa thanh toán', value: 'unpaid' },
+              { label: 'Đã thanh toán', value: 'paid' },
+              { label: 'Đã hủy', value: 'idled' },
+            ],
+            defaultValue: 'unpaid',
+            admin: {
+              position: 'sidebar',
+            },
+            label: 'Trạng thái thanh toán',
+          },
+        ],
+      }),
+    },
+    transactions: {
+      transactionsCollectionOverride: ({ defaultCollection }: any) => ({
+        ...defaultCollection,
+        labels: {
+          singular: 'Giao dịch',
+          plural: 'Giao dịch',
+        },
+      }),
     },
   }),
 ]
