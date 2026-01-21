@@ -8,7 +8,7 @@ Trước khi cài đặt, hãy đảm bảo máy tính của bạn đã cài đ�
 
 - **Node.js**: Phiên bản 18.20.2 trở lên (Khuyến nghị 20.x).
 - **Package Manager**: pnpm (Khuyến nghị), npm, hoặc yarn.
-- **MongoDB**: Bạn cần có một cơ sở dữ liệu MongoDB (có thể chạy local hoặc dùng MongoDB Atlas miễn phí).
+- **MongoDB**: Bạn cần có một cơ sở dữ liệu MongoDB (có thể chạy local hoặc dùng MongoDB Atlas miễn phí). phiên bản MongoDB = 7.0.28
 
 ## Hướng dẫn Cài đặt & Chạy dự án
 
@@ -70,6 +70,23 @@ pnpm dev
 ```bash
 pnpm build
 pnpm start
+```
+
+## Sao lưu & Khôi phục dữ liệu (Backup & Restore)
+
+Để chuyển toàn bộ dữ liệu (Database) sang máy mới nhanh chóng:
+
+**1. Sao lưu (Tại máy cũ):**
+
+```bash
+mongodump --uri="mongodb://127.0.0.1/payloadcms" --out=./backup
+```
+
+**2. Khôi phục (Tại máy mới):**
+Copy thư mục `backup` sang máy mới rồi chạy:
+
+```bash
+mongorestore --uri="mongodb://127.0.0.1/payloadcms" ./backup/payloadcms
 ```
 
 ## Chức năng chính
