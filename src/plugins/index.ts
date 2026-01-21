@@ -4,6 +4,7 @@ import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
+import { importExportPlugin } from '@payloadcms/plugin-import-export'
 import { Plugin } from 'payload'
 import { authenticated } from '@/access/authenticated'
 import { anyone } from '@/access/anyone'
@@ -91,6 +92,18 @@ export const plugins: Plugin[] = [
         return [...defaultFields, ...searchFields]
       },
     },
+  }),
+  importExportPlugin({
+    collections: [
+      { slug: 'pages' },
+      { slug: 'posts' },
+      { slug: 'categories' },
+      { slug: 'rooms' },
+      { slug: 'branches' },
+      { slug: 'bookings' },
+      { slug: 'testimonials' },
+      { slug: 'media' },
+    ],
   }),
   ecommercePlugin({
     access: {

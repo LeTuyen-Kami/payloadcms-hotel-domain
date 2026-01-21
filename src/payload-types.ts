@@ -80,6 +80,8 @@ export interface Config {
     forms: Form;
     'form-submissions': FormSubmission;
     search: Search;
+    exports: Export;
+    imports: Import;
     addresses: Address;
     variants: Variant;
     variantTypes: VariantType;
@@ -120,6 +122,8 @@ export interface Config {
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
+    exports: ExportsSelect<false> | ExportsSelect<true>;
+    imports: ImportsSelect<false> | ImportsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
     variants: VariantsSelect<false> | VariantsSelect<true>;
     variantTypes: VariantTypesSelect<false> | VariantTypesSelect<true>;
@@ -155,6 +159,8 @@ export interface Config {
   };
   jobs: {
     tasks: {
+      createCollectionExport: TaskCreateCollectionExport;
+      createCollectionImport: TaskCreateCollectionImport;
       schedulePublish: TaskSchedulePublish;
       inline: {
         input: unknown;
@@ -1088,6 +1094,80 @@ export interface Search {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports".
+ */
+export interface Export {
+  id: string;
+  name?: string | null;
+  format?: ('csv' | 'json') | null;
+  limit?: number | null;
+  page?: number | null;
+  sort?: string | null;
+  sortOrder?: ('asc' | 'desc') | null;
+  drafts?: ('yes' | 'no') | null;
+  selectionToUse?: ('currentSelection' | 'currentFilters' | 'all') | null;
+  fields?: string[] | null;
+  collectionSlug: string;
+  where?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports".
+ */
+export interface Import {
+  id: string;
+  collectionSlug: 'pages' | 'posts' | 'categories' | 'rooms' | 'branches' | 'bookings' | 'testimonials' | 'media';
+  importMode?: ('create' | 'update' | 'upsert') | null;
+  matchField?: string | null;
+  status?: ('pending' | 'completed' | 'partial' | 'failed') | null;
+  summary?: {
+    imported?: number | null;
+    updated?: number | null;
+    total?: number | null;
+    issues?: number | null;
+    issueDetails?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses".
  */
 export interface Address {
@@ -1396,7 +1476,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'schedulePublish';
+        taskSlug: 'inline' | 'createCollectionExport' | 'createCollectionImport' | 'schedulePublish';
         taskID: string;
         input?:
           | {
@@ -1429,7 +1509,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'schedulePublish') | null;
+  taskSlug?: ('inline' | 'createCollectionExport' | 'createCollectionImport' | 'schedulePublish') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -2206,6 +2286,64 @@ export interface SearchSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports_select".
+ */
+export interface ExportsSelect<T extends boolean = true> {
+  name?: T;
+  format?: T;
+  limit?: T;
+  page?: T;
+  sort?: T;
+  sortOrder?: T;
+  drafts?: T;
+  selectionToUse?: T;
+  fields?: T;
+  collectionSlug?: T;
+  where?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports_select".
+ */
+export interface ImportsSelect<T extends boolean = true> {
+  collectionSlug?: T;
+  importMode?: T;
+  matchField?: T;
+  status?: T;
+  summary?:
+    | T
+    | {
+        imported?: T;
+        updated?: T;
+        total?: T;
+        issues?: T;
+        issueDetails?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses_select".
  */
 export interface AddressesSelect<T extends boolean = true> {
@@ -2648,6 +2786,90 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionExport".
+ */
+export interface TaskCreateCollectionExport {
+  input: {
+    name?: string | null;
+    format?: ('csv' | 'json') | null;
+    limit?: number | null;
+    page?: number | null;
+    sort?: string | null;
+    sortOrder?: ('asc' | 'desc') | null;
+    drafts?: ('yes' | 'no') | null;
+    selectionToUse?: ('currentSelection' | 'currentFilters' | 'all') | null;
+    fields?: string[] | null;
+    collectionSlug: string;
+    where?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    userID?: string | null;
+    userCollection?: string | null;
+    exportsCollection?: string | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionImport".
+ */
+export interface TaskCreateCollectionImport {
+  input: {
+    collectionSlug:
+      | 'pages'
+      | 'posts'
+      | 'media'
+      | 'categories'
+      | 'users'
+      | 'branches'
+      | 'rooms'
+      | 'bookings'
+      | 'testimonials'
+      | 'redirects'
+      | 'forms'
+      | 'form-submissions'
+      | 'search'
+      | 'exports'
+      | 'imports';
+    importMode?: ('create' | 'update' | 'upsert') | null;
+    matchField?: string | null;
+    status?: ('pending' | 'completed' | 'partial' | 'failed') | null;
+    summary?: {
+      imported?: number | null;
+      updated?: number | null;
+      total?: number | null;
+      issues?: number | null;
+      issueDetails?:
+        | {
+            [k: string]: unknown;
+          }
+        | unknown[]
+        | string
+        | number
+        | boolean
+        | null;
+    };
+    user?: string | null;
+    userCollection?: string | null;
+    importsCollection?: string | null;
+    file?: {
+      data?: string | null;
+      mimetype?: string | null;
+      name?: string | null;
+    };
+    format?: ('csv' | 'json') | null;
+    debug?: boolean | null;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
