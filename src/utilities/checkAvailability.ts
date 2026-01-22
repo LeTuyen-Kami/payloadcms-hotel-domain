@@ -27,8 +27,19 @@ export const checkAvailability = async ({
     // Here: BookingStart <= RequestedEnd AND BookingEnd >= RequestedStart
     // Status must not be 'cancelled'
 
+    // Verify dates
+    if (!checkIn || !checkOut) {
+      console.warn('[Availability] Missing checkIn or checkOut date')
+      return false
+    }
+
     const checkInDate = new Date(checkIn)
     const checkOutDate = new Date(checkOut)
+
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      console.warn('[Availability] Invalid date format', { checkIn, checkOut })
+      return false
+    }
 
     const overlappingBookings = await payload.find({
       collection: 'bookings',

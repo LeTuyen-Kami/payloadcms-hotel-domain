@@ -16,7 +16,15 @@ export const Bookings: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'customerName',
-    defaultColumns: ['customerName', 'branch', 'checkIn', 'status'],
+    defaultColumns: [
+      'customerName',
+      'customerPhone',
+      'room',
+      'type',
+      'checkIn',
+      'checkOut',
+      'status',
+    ],
   },
   hooks: {
     afterChange: [
@@ -134,9 +142,6 @@ export const Bookings: CollectionConfig = {
       relationTo: 'rooms',
       required: true,
       label: 'Phòng đặt',
-      admin: {
-        position: 'sidebar',
-      },
     },
     {
       name: 'checkIn',

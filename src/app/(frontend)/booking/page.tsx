@@ -110,6 +110,19 @@ function BookingContent() {
       })
 
       // Save Customer Info
+      // Calculate missing checkOut if needed
+      let finalCheckOut = checkOut
+      if (!finalCheckOut) {
+        if (formData.type === 'hourly') {
+          // Default: checkIn + duration hours
+          finalCheckOut = new Date(checkIn.getTime() + quantity * 60 * 60 * 1000)
+        } else {
+          // Default: checkIn + duration days (at same time or specific checkout time?)
+          // Usually daily checkout is next day at 12:00, but let's just add days for now to be safe
+          finalCheckOut = new Date(checkIn.getTime() + quantity * 24 * 60 * 60 * 1000)
+        }
+      }
+
       const customerData = {
         name: formData.customerName,
         phone: formData.customerPhone,
@@ -118,7 +131,7 @@ function BookingContent() {
         type: formData.type,
         bookingType: formData.type,
         checkIn: checkIn.toISOString(),
-        checkOut: checkOut ? checkOut.toISOString() : undefined,
+        checkOut: finalCheckOut.toISOString(),
         branch: formData.branch,
         duration: quantity,
       }
@@ -152,7 +165,7 @@ function BookingContent() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
-      <div className="h-[113px] bg-white border-b border-border/40 mb-8" />
+      <div className="h-[100px] bg-white border-b border-border/40 mb-8" />
 
       <div className="container max-w-6xl">
         <Link href={`/home`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">

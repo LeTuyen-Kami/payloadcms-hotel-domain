@@ -22,7 +22,20 @@ export async function POST(req: Request) {
     // If product.room is an object/ID, we use it.
     const roomId = typeof product.room === 'object' ? product.room.id : product.room
 
+    // Fetch room to get branch relationship
+    let branchId = null
     if (roomId) {
+      const room = await payload.findByID({ collection: 'rooms', id: roomId })
+      if (room && room.branch) {
+        branchId = typeof room.branch === 'object' ? room.branch.id : room.branch
+      }
+    }
+
+    if (roomId) {
+      if (!bookingDetails.checkIn || !bookingDetails.checkOut) {
+        return NextResponse.json({ error: 'Missing check-in or check-out date' }, { status: 400 })
+      }
+
       const isAvailable = await checkAvailability({
         payload,
         room: roomId,
@@ -79,7 +92,8 @@ export async function POST(req: Request) {
           customerEmail: bookingDetails.email || bookingDetails.customerEmail,
           note: `Auto-created from Order #${order.id}`,
           type: bookingDetails.bookingType || 'hourly', // Fallback
-          branch: typeof product.branch === 'object' ? product.branch.id : product.branch || '1', // Fallback if missing
+          branch:
+            branchId || (typeof product.branch === 'object' ? product.branch.id : product.branch),
         },
       })
     }

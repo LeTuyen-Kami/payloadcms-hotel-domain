@@ -36,8 +36,10 @@ export const RoomsBlockComponent: React.FC<RoomsBlockType> = async ({ title, bra
   })
 
   const bookingsCountByRoom = activeBookings.reduce((acc, booking) => {
-    const roomId = typeof booking.room === 'object' ? booking.room.id : booking.room
-    acc[roomId] = (acc[roomId] || 0) + 1
+    const roomId = typeof booking.room === 'object' ? (booking.room as any).id : booking.room
+    if (typeof roomId === 'string') {
+      acc[roomId] = (acc[roomId] || 0) + 1
+    }
     return acc
   }, {} as Record<string, number>)
 

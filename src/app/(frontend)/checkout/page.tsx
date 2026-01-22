@@ -294,11 +294,11 @@ function CheckoutContent() {
               </button>
             </div>
           ) : (
-            <div className="space-y-6 text-center">
+            <div className="space-y-6 text-center flex flex-col">
 
               {/* Timer */}
               {timeLeft !== null && (
-                <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-2 rounded-lg font-bold inline-block mb-4">
+                <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-2 rounded-lg font-bold inline-block mb-4 w-fit mx-auto">
                   Thời gian còn lại: {formatTime(timeLeft)}
                 </div>
               )}
