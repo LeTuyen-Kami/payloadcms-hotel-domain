@@ -6,7 +6,7 @@ import { cn } from '@/utilities/cn'
 import type { Header, SiteSetting } from '@/payload-types'
 
 import { Logo } from '@/components/Logo/Logo'
-import { HeaderNav } from './Nav'
+import { HeaderNav, HeaderNavMobile } from './Nav'
 import { Phone, Mail, MapPin, Facebook } from 'lucide-react'
 
 interface HeaderClientProps {
@@ -49,7 +49,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data, siteSettings }
             )}
             {siteSettings.contact?.address && (
               <span className="flex items-center hidden md:flex">
-                 <MapPin className="w-3 h-3 mr-2 text-primary" /> {siteSettings.contact.address}
+                <MapPin className="w-3 h-3 mr-2 text-primary" /> {siteSettings.contact.address}
               </span>
             )}
           </div>
@@ -69,20 +69,21 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data, siteSettings }
         isScrolled ? "py-2 shadow-lg" : "py-4"
       )}>
         <div className="container flex justify-between items-center">
-        <Link href="/">
-          {/* Use Site Logo if available, otherwise default Logo component */}
-          {siteSettings.general?.logo && typeof siteSettings.general.logo !== 'string' ? (
-             // eslint-disable-next-line @next/next/no-img-element
-            <img 
-              src={siteSettings.general.logo.url || ''} 
-              alt={siteSettings.general.logo.alt || 'Logo'} 
-              className={cn("h-12 w-auto transition-all duration-500", isScrolled && "h-10")} 
-            />
-          ) : (
-            <Logo loading="eager" priority="high" className={cn("invert dark:invert-0 transition-all duration-500", isScrolled && "scale-90")} />
-          )}
-        </Link>
-        <HeaderNav data={data} />
+          <Link href="/">
+            {/* Use Site Logo if available, otherwise default Logo component */}
+            {siteSettings.general?.logo && typeof siteSettings.general.logo !== 'string' ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={siteSettings.general.logo.url || ''}
+                alt={siteSettings.general.logo.alt || 'Logo'}
+                className={cn("h-12 w-auto transition-all duration-500", isScrolled && "h-10")}
+              />
+            ) : (
+              <Logo loading="eager" priority="high" className={cn("invert dark:invert-0 transition-all duration-500", isScrolled && "scale-90")} />
+            )}
+          </Link>
+          <HeaderNav data={data} />
+          <HeaderNavMobile data={data} />
         </div>
       </div>
     </header>

@@ -161,9 +161,19 @@ export const plugins: Plugin[] = [
                     collection: 'rooms',
                     id: typeof data.room === 'object' ? data.room.id : data.room,
                   })
-                  if (room && room.pricing?.hourly) {
-                    data.priceInVND = room.pricing.hourly
-                    data.priceInVNDEnabled = true
+                  if (room && room.pricing) {
+                    // Sync main price to priceInVND for sorting/listing
+                    if (room.pricing.priceHourlyFirst2Hours) {
+                      data.priceInVND = room.pricing.priceHourlyFirst2Hours
+                      data.priceInVNDEnabled = true
+                    }
+
+                    // Sync other fields
+                    data.priceHourlyNextHour = room.pricing.priceHourlyNextHour
+                    data.priceOvernight = room.pricing.priceOvernight
+                    data.priceDaily = room.pricing.priceDaily
+                    data.surchargeEarlyCheckIn = room.pricing.surchargeEarlyCheckIn
+                    data.surchargeLateCheckOut = room.pricing.surchargeLateCheckOut
                   }
                 } catch (e) {
                   // ignore error
@@ -201,6 +211,36 @@ export const plugins: Plugin[] = [
                 Field: '@/components/RoomPriceSync',
               },
             },
+          },
+          {
+            name: 'priceHourlyNextHour',
+            type: 'number',
+            label: 'Giá mỗi giờ tiếp theo',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'priceOvernight',
+            type: 'number',
+            label: 'Giá qua đêm',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'priceDaily',
+            type: 'number',
+            label: 'Giá theo ngày',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'surchargeEarlyCheckIn',
+            type: 'number',
+            label: 'Phụ thu Check-in sớm',
+            admin: { position: 'sidebar' },
+          },
+          {
+            name: 'surchargeLateCheckOut',
+            type: 'number',
+            label: 'Phụ thu Check-out muộn',
+            admin: { position: 'sidebar' },
           },
         ],
       }),

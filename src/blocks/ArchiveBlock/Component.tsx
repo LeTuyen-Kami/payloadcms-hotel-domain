@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import React from 'react'
 import RichText from '@/components/RichText'
+import { draftMode } from 'next/headers'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
 
@@ -13,6 +14,7 @@ export const ArchiveBlock: React.FC<
   }
 > = async (props) => {
   const { id, categories, introContent, limit: limitFromProps, populateBy, selectedDocs } = props
+  const { isEnabled: draft } = await draftMode()
 
   const limit = limitFromProps || 3
 
@@ -30,14 +32,16 @@ export const ArchiveBlock: React.FC<
       collection: 'posts',
       depth: 1,
       limit,
+      draft,
+      overrideAccess: draft,
       ...(flattenedCategories && flattenedCategories.length > 0
         ? {
-            where: {
-              categories: {
-                in: flattenedCategories,
-              },
+          where: {
+            categories: {
+              in: flattenedCategories,
             },
-          }
+          },
+        }
         : {}),
     })
 

@@ -6,9 +6,12 @@ import type { Product } from '@/payload-types'
 type CartItem = {
   product: Product
   quantity: number
+  price?: number
   validity?: {
     checkIn: string
     checkOut: string
+    duration?: number
+    type?: string
   }
 }
 
@@ -54,7 +57,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // or we can just append.
       // Basic check to see if item exists
       const existingItemIndex = prevItems.findIndex((i) => i.product.id === newItem.product.id)
-      
+
       if (existingItemIndex > -1) {
         // Update existing item
         const newItems = [...prevItems]
@@ -65,7 +68,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return newItems
       }
-      
+
       return [...prevItems, newItem]
     })
   }
@@ -79,9 +82,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const total = items.reduce((acc, item) => {
-    // Adapter for price: check priceInVND, if not then 0. 
+    // Adapter for price: check price override first, then priceInVND, if not then 0. 
     // In a real app we might handle currency selection.
-    const price = item.product.priceInVND || 0 
+    const price = item.price !== undefined ? item.price : (item.product.priceInVND || 0)
     return acc + (price * item.quantity)
   }, 0)
 

@@ -19,8 +19,8 @@ export const RoomCard: React.FC<{ room: Room; isSoldOut?: boolean }> = ({ room, 
           </span>
         </div>
       </div>
-      <div className="p-6">
-        <h3 className="text-2xl font-serif font-medium mb-3 group-hover:text-primary transition-colors line-clamp-1">{title}</h3>
+      <div className="p-4 md:p-6">
+        <h3 className="text-xl md:text-2xl font-serif font-medium mb-3 group-hover:text-primary transition-colors line-clamp-1">{title}</h3>
 
         <div className="flex flex-wrap gap-2 mb-6">
           {amenities?.slice(0, 3).map((amenity) => (
@@ -39,9 +39,9 @@ export const RoomCard: React.FC<{ room: Room; isSoldOut?: boolean }> = ({ room, 
           <div>
             <p className="text-[10px] uppercase tracking-tighter text-muted-foreground">Giá từ</p>
             <p className="text-xl font-medium text-primary">
-              {pricing?.hourly ? `${pricing.hourly.toLocaleString()} VND` : 'Liên hệ'}
+              {pricing?.priceHourlyFirst2Hours ? `${pricing.priceHourlyFirst2Hours.toLocaleString()} VND` : 'Liên hệ'}
             </p>
-            <p className='text-xs text-muted-foreground italic'>/ 1 giờ</p>
+            <p className='text-xs text-muted-foreground italic'>/ 2 giờ đầu</p>
           </div>
         </div>
 

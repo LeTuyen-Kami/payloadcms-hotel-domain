@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Activity } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DateTimePicker } from './DateTimePicker'
 import { cn } from '@/utilities/cn'
-import { format } from 'date-fns'
+import { format, addDays, isToday } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { ChevronDown, Calendar, MapPin } from 'lucide-react'
 
-type BookingType = 'hourly' | 'daily'
+type BookingType = 'hourly' | 'daily' | 'overnight'
 
 interface Branch {
   id: string
@@ -38,7 +38,16 @@ export const BookingBar = () => {
     const checkInParam = searchParams.get('checkIn')
     const checkOutParam = searchParams.get('checkOut')
 
-    if (type) setBookingType(type)
+    if (type) {
+      setBookingType(type)
+      // If overnight and no date param provided, ensure we don't default to today
+      if (type === 'overnight' && isToday(new Date())) {
+        setCheckIn(new Date(addDays(new Date(), 1).setHours(0, 0, 0, 0)))
+      } else {
+
+        setCheckIn(new Date())
+      }
+    }
     if (branch) setSelectedBranch(branch)
     if (checkInParam) setCheckIn(new Date(checkInParam))
     if (checkOutParam) setCheckOut(new Date(checkOutParam))
@@ -83,8 +92,8 @@ export const BookingBar = () => {
   }
 
   return (
-    <div className="bg-white text-gray-900 shadow-2xl p-6 -mt-8 relative z-30 mx-auto max-w-6xl border-t-4 border-primary rounded-sm">
-      <div className={cn("grid gap-6 items-end", branches.length > 1 ? "grid-cols-1 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3")}>
+    <div className="bg-white text-gray-900 shadow-2xl p-4 md:p-6 -mt-4 md:-mt-8 relative z-30 mx-auto max-w-6xl border-t-4 border-primary rounded-sm">
+      <div className={cn("grid gap-4 md:gap-6 items-end", branches.length > 1 ? "grid-cols-1 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3")}>
 
         {/* Booking Type */}
         <div className="relative group">
@@ -92,11 +101,19 @@ export const BookingBar = () => {
           <div className="relative">
             <select
               value={bookingType}
-              onChange={(e) => setBookingType(e.target.value as BookingType)}
+              onChange={(e) => {
+                const newType = e.target.value as BookingType
+                setBookingType(newType)
+                if (newType === 'overnight' && isToday(checkIn)) {
+                  setCheckIn(new Date(addDays(new Date(), 1).setHours(0, 0, 0, 0)))
+                } else {
+                  setCheckIn(new Date())
+                }
+              }}
               className="w-full p-4 border border-gray-200 bg-gray-50 text-gray-900 text-[13px] font-bold appearance-none cursor-pointer hover:border-primary transition-colors focus:outline-none focus:ring-1 focus:ring-primary uppercase tracking-wider"
             >
               <option value="hourly">THEO GIỜ</option>
-
+              <option value="overnight">QUA ĐÊM</option>
               <option value="daily">THEO NGÀY</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -134,19 +151,23 @@ export const BookingBar = () => {
             <Calendar className="w-4 h-4 text-gray-400 group-hover:text-primary flex-shrink-0 ml-2" />
           </button>
 
-          {showDatePicker && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-              <DateTimePicker
-                bookingType={bookingType}
-                onApply={(start, end) => {
-                  setCheckIn(start)
-                  setCheckOut(end)
-                }}
-                onClose={() => setShowDatePicker(false)}
-              />
-            </>
-          )}
+          <div className={cn(showDatePicker ? "block" : "hidden")} key={bookingType}>
+            <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+            <DateTimePicker
+              bookingType={bookingType}
+              initialDate={checkIn}
+              initialDuration={
+                bookingType === 'hourly' && checkOut
+                  ? Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60))
+                  : undefined
+              }
+              onApply={(start, end) => {
+                setCheckIn(start)
+                setCheckOut(end)
+              }}
+              onClose={() => setShowDatePicker(false)}
+            />
+          </div>
         </div>
 
         {/* Submit Button */}

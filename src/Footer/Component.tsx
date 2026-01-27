@@ -85,7 +85,7 @@ export async function Footer() {
                   ))
                ) : branches.length === 1 ? (
                   <>
-                     <div className="text-sm border-l border-slate-800 pl-8">
+                     <div className="text-sm md:border-l md:border-slate-800 md:pl-8">
                         <h4 className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Thông tin liên hệ</h4>
                         <div className="space-y-3">
                            <p className="flex items-start gap-2">
@@ -104,7 +104,7 @@ export async function Footer() {
                            )}
                         </div>
                      </div>
-                     <div className="text-sm border-l border-slate-800 pl-8">
+                     <div className="text-sm md:border-l md:border-slate-800 md:pl-8">
                         <h4 className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Liên kết nhanh</h4>
                         <ul className="space-y-3">
                            <li><Link href="/" className="hover:text-primary transition-colors">Trang chủ</Link></li>

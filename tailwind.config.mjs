@@ -94,9 +94,9 @@ const config = {
         warning: 'hsl(var(--warning))',
       },
       fontFamily: {
-        mono: ['var(--font-geist-mono)'],
-        sans: ['Inter', 'var(--font-geist-sans)', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['var(--font-be-vietnam-pro)', 'sans-serif'],
+        serif: ['var(--font-playfair-display)', 'serif'],
       },
       keyframes: {
         'accordion-down': {

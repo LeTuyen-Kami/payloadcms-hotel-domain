@@ -20,7 +20,7 @@ export const HotelHero: React.FC<Page['hero']> = ({ links, media, images, richTe
   }, [slides.length])
 
   return (
-    <div className="relative text-white h-[85vh] flex flex-col justify-end pb-24">
+    <div className="relative text-white h-[80vh] md:h-[85vh] flex flex-col justify-end pb-16 md:pb-24">
       {/* Background Slider */}
       <div className="absolute inset-0 overflow-hidden select-none bg-black">
         {slides.map((slide, index) => {
@@ -42,7 +42,7 @@ export const HotelHero: React.FC<Page['hero']> = ({ links, media, images, richTe
 
       <div className="container relative z-20 mb-8 flex flex-col items-center justify-center text-center">
         <div className="max-w-3xl">
-          {richText && <RichText className="mb-8 prose-headings:text-5xl prose-headings:font-serif prose-p:text-xl text-shadow-lg" data={richText} enableGutter={false} />}
+          {richText && <RichText className="mb-8 prose-headings:text-3xl md:prose-headings:text-5xl prose-headings:font-serif prose-p:text-lg md:prose-p:text-xl text-shadow-lg" data={richText} enableGutter={false} />}
           {Array.isArray(links) && links.length > 0 && (
             <ul className="flex justify-center gap-4">
               {links.map(({ link }, i) => {

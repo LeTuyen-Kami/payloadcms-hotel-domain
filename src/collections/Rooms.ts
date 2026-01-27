@@ -22,15 +22,20 @@ export const Rooms: CollectionConfig = {
   hooks: {
     afterChange: [
       async ({ doc, req }) => {
-        if (doc.pricing?.hourly) {
+        // Sync pricing to linked Products
+        const hasPricing =
+          doc.pricing?.priceHourlyFirst2Hours ||
+          doc.pricing?.priceOvernight ||
+          doc.pricing?.priceDaily
+
+        if (hasPricing) {
           console.log(
-            `[Sync] Room "${doc.title}" (ID: ${doc.id}) matched pricing.hourly condition: ${doc.pricing.hourly}`,
+            `[Sync] Room "${doc.title}" (ID: ${doc.id}) has pricing data. Starting sync...`,
           )
           try {
-            console.log(`[Sync] Searching for products linked to Room ID: ${doc.id}`)
             const { docs: products } = await req.payload.find({
               collection: 'products',
-              draft: true, // Include draft products
+              draft: true,
               where: {
                 room: {
                   equals: doc.id,
@@ -43,18 +48,27 @@ export const Rooms: CollectionConfig = {
             if (products.length > 0) {
               await Promise.all(
                 products.map(async (product) => {
-                  console.log(
-                    `[Sync] Updating Product ID: ${product.id} with price: ${doc.pricing.hourly}`,
-                  )
                   try {
+                    // Update Product with new pricing structure
+                    // Note: Product schema might need updates if it doesn't support these fields yet,
+                    // but for now we map to standard fields we likely have or will standardise.
+                    // Assuming Product has generic fields or we map strictly.
+                    // Based on previous code, Product had: priceInVND, priceOvernight, priceDaily.
+                    // We will map:
+                    // priceHourlyFirst2Hours -> priceInVND (Base hourly)
+                    // priceOvernight -> priceOvernight
+                    // priceDaily -> priceDaily
+
                     await req.payload.update({
                       collection: 'products',
                       id: product.id,
                       data: {
-                        priceInVND: doc.pricing.hourly,
+                        priceInVND: doc.pricing.priceHourlyFirst2Hours,
                         priceInVNDEnabled: true,
-                        priceOvernight: doc.pricing.overnight,
-                        priceDaily: doc.pricing.daily,
+                        priceOvernight: doc.pricing.priceOvernight,
+                        priceDaily: doc.pricing.priceDaily,
+                        // If Product needs more fields like 'nextHour', they need to be added to Product schema too
+                        // For now we sync the main ones ensuring basic overlap works.
                       } as any,
                     })
                     console.log(`[Sync] Successfully updated Product ID: ${product.id}`)
@@ -68,7 +82,7 @@ export const Rooms: CollectionConfig = {
             console.error('Error syncing room price to products:', error)
           }
         } else {
-          console.log(`[Sync] Room "${doc.title}" (ID: ${doc.id}) has NO pricing.hourly`)
+          console.log(`[Sync] Room "${doc.title}" (ID: ${doc.id}) has missing pricing data`)
         }
       },
     ],
@@ -133,13 +147,67 @@ export const Rooms: CollectionConfig = {
     {
       name: 'pricing',
       type: 'group',
-      label: 'Bảng giá',
+      label: 'Bảng giá (VNĐ)',
       fields: [
         {
-          name: 'hourly',
-          type: 'number',
-          label: 'Giá 1 giờ',
-          required: true,
+          type: 'row',
+          fields: [
+            {
+              name: 'priceHourlyFirst2Hours',
+              type: 'number',
+              label: 'Giá 2 giờ đầu',
+              required: true,
+              admin: { width: '50%' },
+            },
+            {
+              name: 'priceHourlyNextHour',
+              type: 'number',
+              label: 'Giá mỗi giờ tiếp theo',
+              required: true,
+              admin: { width: '50%' },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'priceOvernight',
+              type: 'number',
+              label: 'Giá qua đêm (22h - 12h)',
+              required: true,
+              admin: { width: '50%' },
+            },
+            {
+              name: 'priceDaily',
+              type: 'number',
+              label: 'Giá theo ngày (12h - 12h)',
+              required: true,
+              admin: { width: '50%' },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'surchargeEarlyCheckIn',
+              type: 'number',
+              label: 'Phụ thu Check-in sớm (+20k)',
+              admin: { width: '50%' },
+            },
+            {
+              name: 'surchargeLateCheckOut',
+              type: 'number',
+              label: 'Phụ thu Check-out muộn (+20k)',
+              admin: { width: '50%' },
+            },
+          ],
+        },
+        {
+          name: 'pricingNote',
+          type: 'textarea',
+          label: 'Ghi chú giá (Hiển thị frontend)',
         },
       ],
     },

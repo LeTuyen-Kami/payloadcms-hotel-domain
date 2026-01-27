@@ -1,0 +1,23 @@
+@import '@payloadcms/ui/scss/index.scss';
+
+:root {
+  --theme-elevation-50: #fcfaf8;
+  --theme-elevation-100: #f5f0eb;
+  --theme-elevation-150: #ede6dd;
+  --theme-elevation-200: #e5dbcf;
+
+  /* Use our brand gold for the accent */
+  --theme-bg: #fff;
+  --theme-text: #1a1a1a;
+
+  /* Payload Primary Button & Links */
+  --theme-success-500: #c5a47e;
+  --theme-success-400: #d4bc9d;
+  --theme-success-600: #b08d66;
+}
+
+[data-theme='light'] {
+  --theme-primary-500: #c5a47e;
+  --theme-primary-400: #d4bc9d;
+  --theme-primary-600: #b08d66;
+}

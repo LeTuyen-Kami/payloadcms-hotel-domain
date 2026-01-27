@@ -1,6 +1,6 @@
 import { differenceInHours, differenceInDays, parseISO } from 'date-fns'
 
-export type BookingType = 'hourly' | 'daily'
+export type BookingType = 'hourly' | 'daily' | 'overnight'
 
 /**
  * Calculate the quantity (duration) based on booking type and dates
@@ -31,6 +31,9 @@ export function calculateBookingDuration(
       if (!checkOutDate) return 1 // Default 1 day
       const days = differenceInDays(checkOutDate, checkInDate)
       return Math.max(days, 1) // Minimum 1 day
+
+    case 'overnight':
+      return 1 // Overnight is always 1 unit (night) logic
 
     default:
       return 1

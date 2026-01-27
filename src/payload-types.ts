@@ -975,7 +975,13 @@ export interface Room {
   amenities?: ('tv' | 'ac' | 'fridge' | 'hairdryer' | 'wifi' | 'bathtub')[] | null;
   totalStock: number;
   pricing: {
-    hourly: number;
+    priceHourlyFirst2Hours: number;
+    priceHourlyNextHour: number;
+    priceOvernight: number;
+    priceDaily: number;
+    surchargeEarlyCheckIn?: number | null;
+    surchargeLateCheckOut?: number | null;
+    pricingNote?: string | null;
   };
   /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
@@ -1266,6 +1272,11 @@ export interface Product {
   };
   priceInVNDEnabled?: boolean | null;
   priceInVND?: number | null;
+  priceHourlyNextHour?: number | null;
+  priceOvernight?: number | null;
+  priceDaily?: number | null;
+  surchargeEarlyCheckIn?: number | null;
+  surchargeLateCheckOut?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2054,7 +2065,13 @@ export interface RoomsSelect<T extends boolean = true> {
   pricing?:
     | T
     | {
-        hourly?: T;
+        priceHourlyFirst2Hours?: T;
+        priceHourlyNextHour?: T;
+        priceOvernight?: T;
+        priceDaily?: T;
+        surchargeEarlyCheckIn?: T;
+        surchargeLateCheckOut?: T;
+        pricingNote?: T;
       };
   generateSlug?: T;
   slug?: T;
@@ -2414,6 +2431,11 @@ export interface ProductsSelect<T extends boolean = true> {
   variants?: T;
   priceInVNDEnabled?: T;
   priceInVND?: T;
+  priceHourlyNextHour?: T;
+  priceOvernight?: T;
+  priceDaily?: T;
+  surchargeEarlyCheckIn?: T;
+  surchargeLateCheckOut?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

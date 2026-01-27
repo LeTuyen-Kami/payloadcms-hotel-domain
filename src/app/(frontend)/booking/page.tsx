@@ -9,6 +9,7 @@ import { DateTimePicker } from '@/components/BookingBar/DateTimePicker'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { calculateBookingDuration, BookingType } from '@/utilities/calculateBookingDuration'
+import { calculateRoomPrice } from '@/utilities/priceUtils'
 
 export default function BookingPage() {
   return (
@@ -65,7 +66,7 @@ function BookingContent() {
     fetchProduct()
   }, [roomId])
 
-  // 2. Initialize Duration
+  // 2. Initialize Duration and Recalc Price
   useEffect(() => {
     // If dates are present from URL, calc duration
     if (checkIn) {
@@ -76,6 +77,29 @@ function BookingContent() {
   }, [checkIn, checkOut, formData.type])
 
   const { addItem, clearCart } = useCart()
+
+  // Calculate Price Result (Total + Breakdown)
+  const priceResult = React.useMemo(() => {
+    if (!product) return { totalPrice: 0, durationLabel: '', breakdown: '' }
+
+    // Map product fields to PriceConfig
+    // Note: product fields were synced from Rooms.ts hook.
+    // Ensure product object has these fields. If not present (old products), logic handles defaults (0).
+    const priceConfig = {
+      priceHourlyFirst2Hours: product.priceInVND, // Mapped in sync (first 2h)
+      priceHourlyNextHour: product.priceHourlyNextHour,
+      priceOvernight: product.priceOvernight,
+      priceDaily: product.priceDaily,
+    }
+
+    return calculateRoomPrice(
+      priceConfig,
+      formData.type as 'hourly' | 'daily' | 'overnight',
+      checkIn,
+      checkOut,
+      formData.type === 'hourly' ? duration : undefined
+    )
+  }, [product, formData.type, checkIn, checkOut, duration])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,31 +119,35 @@ function BookingContent() {
         return
       }
 
-      // Calculate final quantity
-      const quantity = calculateBookingDuration(formData.type, checkIn, checkOut || undefined)
-
-      // Add to Cart
+      // Add to Cart with CALCULATED PRICE
       clearCart()
       addItem({
         product,
-        quantity,
+        quantity: 1, // Quantity 1 booking
+        price: priceResult.totalPrice, // Override price
         validity: {
           checkIn: checkIn.toISOString(),
-          checkOut: checkOut ? checkOut.toISOString() : ''
+          checkOut: checkOut ? checkOut.toISOString() : '',
+          duration // Store duration for display reference
         }
       })
 
       // Save Customer Info
-      // Calculate missing checkOut if needed
+      // Calculate missing checkOut if needed (for record)
       let finalCheckOut = checkOut
       if (!finalCheckOut) {
+        // Logic fallback if checkOut undefined (e.g. hourly without picking end range specifically? but usually managed by logic)
         if (formData.type === 'hourly') {
-          // Default: checkIn + duration hours
-          finalCheckOut = new Date(checkIn.getTime() + quantity * 60 * 60 * 1000)
+          finalCheckOut = new Date(checkIn.getTime() + duration * 60 * 60 * 1000)
+        } else if (formData.type === 'overnight') {
+          // 12PM next day
+          const nextDay = new Date(checkIn)
+          nextDay.setDate(nextDay.getDate() + 1)
+          nextDay.setHours(12, 0, 0, 0)
+          finalCheckOut = nextDay
         } else {
-          // Default: checkIn + duration days (at same time or specific checkout time?)
-          // Usually daily checkout is next day at 12:00, but let's just add days for now to be safe
-          finalCheckOut = new Date(checkIn.getTime() + quantity * 24 * 60 * 60 * 1000)
+          // Daily
+          finalCheckOut = new Date(checkIn.getTime() + duration * 24 * 60 * 60 * 1000)
         }
       }
 
@@ -133,7 +161,8 @@ function BookingContent() {
         checkIn: checkIn.toISOString(),
         checkOut: finalCheckOut.toISOString(),
         branch: formData.branch,
-        duration: quantity,
+        duration: duration,
+        totalPrice: priceResult.totalPrice
       }
       localStorage.setItem('checkout-customer', JSON.stringify(customerData))
 
@@ -153,19 +182,13 @@ function BookingContent() {
     return `${format(checkIn, 'HH:mm dd/MM', { locale: vi })} - ${format(checkOut, 'HH:mm dd/MM', { locale: vi })}`
   }
 
-  // Calculate Total Price Estimate
-  const estimatedPrice = React.useMemo(() => {
-    if (!product) return 0
-    if (formData.type === 'hourly') return (product.priceInVND || 0) * duration
-    if (formData.type === 'daily') return (product.priceInVND || 0) * 24 * duration
-    return 0
-  }, [product, duration, formData.type])
+  // ... (EstimatedPrice deprecated by priceResult)
 
   if (success) return null // Handled in redirect mostly
 
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
-      <div className="h-[100px] bg-white border-b border-border/40 mb-8" />
+      <div className="h-[100px] lg:h-[80px] bg-white border-b border-border/40 mb-8" />
 
       <div className="container max-w-6xl">
         <Link href={`/home`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">
@@ -192,8 +215,8 @@ function BookingContent() {
                 </div>
 
                 {/* Booking Type Selector */}
-                <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-lg">
-                  {(['hourly', 'daily'] as const).map((t) => (
+                <div className="grid grid-cols-3 gap-3 p-1 bg-slate-100 rounded-lg">
+                  {(['hourly', 'overnight', 'daily'] as const).map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -201,12 +224,14 @@ function BookingContent() {
                         setFormData({ ...formData, type: t })
                         setCheckOut(null) // Reset checkout when type changes
                       }}
-                      className={`py-3 text-sm font-bold uppercase tracking-wide rounded-md transition-all ${formData.type === t
+                      className={`py-3 text-xs md:text-sm font-bold uppercase tracking-wide rounded-md transition-all ${formData.type === t
                         ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
                         : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
                         }`}
                     >
-                      {t === 'hourly' ? 'Theo giờ' : 'Theo ngày'}
+                      {t === 'hourly' && 'Theo giờ'}
+                      {t === 'overnight' && 'Qua đêm'}
+                      {t === 'daily' && 'Theo ngày'}
                     </button>
                   ))}
                 </div>
@@ -224,13 +249,14 @@ function BookingContent() {
                   </button>
                   {/* Duration Badge */}
                   <div className="absolute right-4 top-0 -translate-y-1/2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                    {formData.type === 'hourly' ? `${duration} giờ` : `${duration} ngày`}
+                    {priceResult.durationLabel}
                   </div>
 
                   {/* Check-out info hint */}
                   <p className="text-xs text-slate-400 italic">
-                    {formData.type === 'hourly' && `Tự động tính ${duration} giờ kể từ giờ nhận phòng`}
-                    {formData.type === 'daily' && 'Check-out mặc định: 12:00 trưa'}
+                    {formData.type === 'hourly' && `* Quá giờ check-out sẽ tính phí theo bảng giá.`}
+                    {formData.type === 'overnight' && '* Check-out trước 12:00 trưa hôm sau.'}
+                    {formData.type === 'daily' && '* Check-out trước 12:00 trưa.'}
                   </p>
 
                   {showDatePicker && (
@@ -241,9 +267,10 @@ function BookingContent() {
                           bookingType={formData.type as BookingType}
                           initialDate={checkIn}
                           initialDuration={duration}
-                          onApply={(start, end) => {
+                          onApply={(start, end, dur) => {
                             setCheckIn(start)
                             if (end) setCheckOut(end)
+                            if (dur) setDuration(dur)
                           }}
                           onClose={() => setShowDatePicker(false)}
                         />
@@ -253,7 +280,7 @@ function BookingContent() {
                 </div>
               </div>
 
-              {/* 2. Customer Info */}
+              {/* 2. Customer Info ... (Unchanged) */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">2</div>
@@ -316,28 +343,28 @@ function BookingContent() {
                 <div>
                   <p className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Thông tin phòng</p>
                   <h2 className="text-2xl font-serif text-white mb-1">{product?.title || 'Đang tải...'}</h2>
-                  <p className="text-slate-400 text-sm">
-                    {formData.type === 'hourly' && `${product?.priceInVND?.toLocaleString()}đ / 1 giờ`}
-                    {formData.type === 'daily' && `${((product?.priceInVND || 0) * 24).toLocaleString()}đ / 1 ngày`}
+                  <p className="text-slate-400 text-sm italic">
+                    {priceResult.breakdown}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Đơn giá:</span>
-                  <span className="font-medium">
-                    {formData.type === 'hourly' && `${product?.priceInVND?.toLocaleString()} VND`}
-                    {formData.type === 'daily' && `${((product?.priceInVND || 0) * 24).toLocaleString()} VND`}
-                  </span>
+                  {/* Breakdown details */}
+                  <span className="text-slate-400">Chi tiết:</span>
+                  <span className="font-medium text-right">{priceResult.breakdown}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Thời gian:</span>
-                  <span className="font-medium">x {duration} {formData.type === 'hourly' ? 'giờ' : 'ngày'}</span>
-                </div>
+                {priceResult.durationLabel && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Thời gian:</span>
+                    <span className="font-medium">{priceResult.durationLabel}</span>
+                  </div>
+                )}
+
                 <div className="pt-4 border-t border-slate-800 flex justify-between items-end">
                   <span className="text-lg font-serif">Tổng tạm tính:</span>
-                  <span className="text-3xl font-bold text-primary">{estimatedPrice.toLocaleString()} VND</span>
+                  <span className="text-3xl font-bold text-primary">{priceResult.totalPrice.toLocaleString()} VND</span>
                 </div>
               </div>
 

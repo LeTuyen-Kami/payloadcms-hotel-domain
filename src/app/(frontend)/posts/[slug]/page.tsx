@@ -52,7 +52,7 @@ export default async function Post({ params: paramsPromise }: Args) {
   if (!post) return <PayloadRedirects url={url} />
 
   return (
-    <article className="pt-16 pb-16">
+    <article className="pb-24">
       <PageClient />
 
       {/* Allows redirects for valid pages too */}
@@ -62,15 +62,30 @@ export default async function Post({ params: paramsPromise }: Args) {
 
       <PostHero post={post} />
 
-      <div className="flex flex-col items-center gap-4 pt-8">
-        <div className="container">
-          <RichText className="max-w-[48rem] mx-auto" data={post.content} enableGutter={false} />
-          {post.relatedPosts && post.relatedPosts.length > 0 && (
-            <RelatedPosts
-              className="mt-12 max-w-[52rem] lg:grid lg:grid-cols-subgrid col-start-1 col-span-3 grid-rows-[2fr]"
-              docs={post.relatedPosts.filter((post) => typeof post === 'object')}
+      <div className="relative">
+        <div className="absolute top-0 left-0 w-full h-32 bg-linear-to-b from-black/5 to-transparent pointer-events-none" />
+
+        <div className="container py-16 md:py-24">
+          <div className="max-w-[52rem] mx-auto">
+            <RichText
+              className="prose-slate md:prose-lg lg:prose-xl prose-headings:font-serif prose-headings:font-normal prose-p:leading-relaxed prose-p:text-slate-700"
+              data={post.content}
+              enableGutter={false}
             />
-          )}
+
+            {post.relatedPosts && post.relatedPosts.length > 0 && (
+              <div className="mt-24 border-t pt-16">
+                <div className="flex items-center gap-4 mb-12">
+                  <div className="h-px bg-primary grow" />
+                  <h2 className="font-serif text-3xl text-center shrink-0">Bài viết liên quan</h2>
+                  <div className="h-px bg-primary grow" />
+                </div>
+                <RelatedPosts
+                  docs={post.relatedPosts.filter((post) => typeof post === 'object')}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </article>

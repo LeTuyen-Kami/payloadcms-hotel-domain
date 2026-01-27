@@ -59,13 +59,13 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Top Navigation Spacer */}
-      <div className="h-16 bg-white border-b border-border/40" />
+      <div className="h-[100px] lg:h-[80px] bg-white border-b border-border/40" />
 
       <section className="container py-8 md:py-12">
         {/* Back Button */}
         <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Quay lại danh sách phòng
+          Quay lại
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -129,10 +129,42 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               <h3 className="text-2xl font-serif mb-6 text-slate-900">Bảng giá & Gói đặt</h3>
 
               <div className="space-y-4 mb-8">
-                {pricing?.hourly && (
-                  <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                    <span className="text-slate-600 font-medium">Giá 1 giờ</span>
-                    <span className="text-xl font-bold text-primary">{pricing.hourly.toLocaleString()} VND</span>
+                {pricing?.priceHourlyFirst2Hours && (
+                  <>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                      <span className="text-slate-600 font-medium text-sm">Giá 2 giờ đầu</span>
+                      <span className="text-lg font-bold text-primary">{pricing.priceHourlyFirst2Hours.toLocaleString()} VND</span>
+                    </div>
+                    {pricing.priceHourlyNextHour && (
+                      <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                        <span className="text-slate-500 text-sm">Mỗi giờ tiếp theo</span>
+                        <span className="text-base font-semibold text-slate-700">+{pricing.priceHourlyNextHour.toLocaleString()} VND</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                {pricing?.priceOvernight && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                    <span className="text-slate-600 font-medium text-sm">Qua đêm (22h - 12h)</span>
+                    <span className="text-lg font-bold text-primary">{pricing.priceOvernight.toLocaleString()} VND</span>
+                  </div>
+                )}
+                {pricing?.priceDaily && (
+                  <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
+                    <span className="text-slate-600 font-medium text-sm">Theo ngày (12h - 12h)</span>
+                    <span className="text-lg font-bold text-primary">{pricing.priceDaily.toLocaleString()} VND</span>
+                  </div>
+                )}
+                {(pricing?.surchargeEarlyCheckIn || pricing?.surchargeLateCheckOut) && (
+                  <div className="pt-2">
+                    <p className="text-xs text-muted-foreground italic">
+                      * Phụ thu: Check-in sớm {pricing.surchargeEarlyCheckIn ? `+${pricing.surchargeEarlyCheckIn.toLocaleString()}đ` : ''} / Check-out muộn {pricing.surchargeLateCheckOut ? `+${pricing.surchargeLateCheckOut.toLocaleString()}đ` : ''}
+                    </p>
+                  </div>
+                )}
+                {pricing?.pricingNote && (
+                  <div className="pt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
+                    {pricing.pricingNote}
                   </div>
                 )}
               </div>
