@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { anyone } from '../access/anyone'
 import { authenticated } from '../access/authenticated'
 import { slugField } from 'payload'
+import { revalidateRoom, revalidateRoomDelete } from './Rooms/hooks/revalidateRoom'
 
 export const Rooms: CollectionConfig = {
   slug: 'rooms',
@@ -21,6 +22,7 @@ export const Rooms: CollectionConfig = {
   },
   hooks: {
     afterChange: [
+      revalidateRoom,
       async ({ doc, req }) => {
         // Sync pricing to linked Products
         const hasPricing =
@@ -86,6 +88,7 @@ export const Rooms: CollectionConfig = {
         }
       },
     ],
+    afterDelete: [revalidateRoomDelete],
   },
   fields: [
     {

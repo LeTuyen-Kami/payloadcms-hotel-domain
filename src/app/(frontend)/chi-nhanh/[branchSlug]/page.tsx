@@ -8,7 +8,9 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 // Force dynamic rendering to ensure fresh data
-export const dynamic = 'force-dynamic'
+// export const dynamic = 'force-dynamic'
+export const revalidate = 600;
+export const dynamicParams = true;
 
 interface BranchPageProps {
   params: Promise<{

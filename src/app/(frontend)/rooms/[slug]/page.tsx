@@ -6,7 +6,9 @@ import { Media } from '@/components/Media'
 import Link from 'next/link'
 import { ArrowLeft, Check, Info, ShieldCheck } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
+// export const dynamic = 'force-dynamic'
+export const revalidate = false; // Revalidate on-demand via hooks
+export const dynamicParams = true;
 
 interface RoomDetailPageProps {
   params: Promise<{
@@ -213,4 +215,17 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
       </section>
     </main>
   )
+}
+
+export async function generateStaticParams() {
+  const payload = await getPayload({ config: configPromise })
+  const { docs: rooms } = await payload.find({
+    collection: 'rooms',
+    draft: false,
+    limit: 1000,
+  })
+
+  return rooms.map((room) => ({
+    slug: room.slug,
+  }))
 }

@@ -1,6 +1,10 @@
 import type { CollectionConfig } from 'payload'
 
 import { authenticated } from '../access/authenticated'
+import {
+  revalidateRoomFromBooking,
+  revalidateRoomFromBookingDelete,
+} from './Bookings/hooks/revalidateRoomFromBooking'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
@@ -28,6 +32,7 @@ export const Bookings: CollectionConfig = {
   },
   hooks: {
     afterChange: [
+      revalidateRoomFromBooking,
       async ({ doc, req, operation }) => {
         // Auto-create Order when Admin/Reception creates a Booking
         if (operation === 'create' && doc.room && req.user) {
@@ -38,7 +43,7 @@ export const Bookings: CollectionConfig = {
               id: typeof doc.room === 'object' ? doc.room.id : doc.room,
             })
 
-            if (!room || !room.pricing?.hourly) return
+            if (!room || !room.pricing?.priceHourlyFirst2Hours) return
 
             // 2. Fetch Linked Product (to associate with Order)
             const products = await req.payload.find({
@@ -64,7 +69,7 @@ export const Bookings: CollectionConfig = {
             )
 
             // Simple pricing logic
-            const price = room.pricing.hourly
+            const price = room.pricing.priceHourlyFirst2Hours
             const total = price * hours
 
             // 4. Create Paid Order
@@ -101,6 +106,7 @@ export const Bookings: CollectionConfig = {
         }
       },
     ],
+    afterDelete: [revalidateRoomFromBookingDelete],
   },
   fields: [
     {
