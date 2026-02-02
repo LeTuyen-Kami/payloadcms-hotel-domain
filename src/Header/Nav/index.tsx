@@ -17,7 +17,7 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
   const pathname = usePathname()
 
   return (
-    <nav className="flex gap-6 items-center hidden md:flex">
+    <nav className="gap-6 items-center hidden md:flex">
       {/* <NavDropdown /> */}
       {navItems.map(({ link }, i) => {
         const href =
@@ -26,7 +26,7 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
             : link.url
 
         // Exact match or subpath (but handle homepage '/' carefully)
-        const isActive = pathname === href || (href !== '/' && pathname?.startsWith(href || ''))
+        const isActive = pathname.includes(href || '') || (href !== '/' && pathname?.startsWith(href || '')) || (pathname === '/' && href === '/home')
 
         return (
           <CMSLink
@@ -35,7 +35,7 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
             appearance="link"
             className={cn(
               "text-sm font-medium hover:text-primary transition-colors relative",
-              isActive && "text-primary font-bold after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-[2px] after:bg-primary"
+              isActive && "text-primary font-bold underline"
             )}
           />
         )

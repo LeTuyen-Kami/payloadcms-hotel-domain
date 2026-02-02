@@ -23,11 +23,17 @@ export const RoomCard: React.FC<{ room: Room; isSoldOut?: boolean }> = ({ room, 
         <h3 className="text-xl md:text-2xl font-serif font-medium mb-3 group-hover:text-primary transition-colors line-clamp-1">{title}</h3>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          {amenities?.slice(0, 3).map((amenity) => (
-            <span key={amenity} className="text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5 rounded-sm">
-              {amenity}
-            </span>
-          ))}
+          {amenities?.slice(0, 3).map((amenity: any) => {
+            const title = typeof amenity === 'object' ? amenity.title : amenity
+            return (
+              <span
+                key={typeof amenity === 'object' ? amenity.id : amenity}
+                className="text-[10px] uppercase tracking-wider text-muted-foreground border border-border px-2 py-0.5 rounded-sm"
+              >
+                {title}
+              </span>
+            )
+          })}
           {amenities && amenities.length > 3 && (
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-0.5">
               +{amenities.length - 3} tiện ích khác

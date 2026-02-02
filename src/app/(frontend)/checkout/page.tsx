@@ -28,6 +28,7 @@ function CheckoutContent() {
   const [isExpired, setIsExpired] = useState(false) // New state for expiration
   const [timeLeft, setTimeLeft] = useState<number | null>(null) // State for countdown
   const [error, setError] = useState<string | null>(null)
+  const [displayItems, setDisplayItems] = useState<any[]>([])
 
   const [customerInfo, setCustomerInfo] = useState<any>(null)
 
@@ -37,6 +38,13 @@ function CheckoutContent() {
       setCustomerInfo(JSON.parse(savedCustomer))
     }
   }, [])
+
+  // Sync displayItems with cart items initially
+  useEffect(() => {
+    if (items.length > 0) {
+      setDisplayItems(items)
+    }
+  }, [items])
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -153,179 +161,267 @@ function CheckoutContent() {
     }
   }
 
+  // Restore order info if page reloaded with orderId
+  useEffect(() => {
+    if (orderId && items.length === 0) {
+      // Fetch order details
+      const fetchOrder = async () => {
+        try {
+          const res = await fetch(`/api/orders/${orderId}`)
+          if (!res.ok) return; // Silent fail or handle error
+          const orderData = await res.json()
+
+          if (orderData && orderData.items) {
+
+            // Let's create a displayItems state.
+            const restoredItems = orderData.items.map((item: any) => ({
+              product: {
+                title: orderData.bookingRoom,
+                branch: { title: '...' },
+                priceInVND: item.price
+              },
+              quantity: item.quantity,
+              price: orderData.amount
+            }))
+            setDisplayItems(restoredItems)
+          }
+
+          // Also restore customer info if missing
+          if (!customerInfo) {
+            setCustomerInfo({
+              name: orderData.customerName,
+              phone: orderData.customerPhone,
+              email: orderData.customerEmail,
+              note: orderData.note,
+              bookingType: orderData.bookingType || 'hourly', // You might need to save this to Order to retrieve it
+              checkIn: orderData.checkIn,
+              checkOut: orderData.checkOut,
+              duration: orderData.bookingDuration // This might be string "XX giờ"
+            })
+          }
+
+        } catch (e) {
+          console.error("Failed to restore order", e)
+        }
+      }
+      fetchOrder()
+    }
+  }, [orderId, items.length])
+
+
+  // Auto-trigger payment creation
+  useEffect(() => {
+    if (items.length > 0 && customerInfo && !paymentInfo && !orderId && !loading && !error) {
+      handlePayment()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, paymentInfo, orderId, customerInfo]) // Added customerInfo to deps to wait for it to load
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  }
+
   if (items.length === 0 && !paymentInfo && !orderId) {
     return (
       <div className="container mx-auto py-20 text-center">
         <h1 className="text-3xl font-bold mb-4">Giỏ hàng trống</h1>
-        <p className="mb-8">Bạn chưa chọn phòng nào.</p>
-        <button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg">
+        <p className="mb-8 text-muted-foreground">Bạn chưa chọn phòng nào.</p>
+        <button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium transition-colors">
           Xem danh sách phòng
         </button>
       </div>
     )
   }
 
-  // Show restoring state
-  if (orderId && !paymentInfo && !isExpired) {
-    return (
-      <div className="container mx-auto py-20 text-center">
-        <p className="text-lg text-primary animate-pulse">Đang khôi phục thông tin đơn hàng...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="container mx-auto py-20 px-4">
-      <h1 className="text-4xl font-bold text-center mb-12">Thanh toán</h1>
+    <div className="container mx-auto py-10 mt-[80px] px-4 md:py-16">
+      <h1 className="text-3xl md:text-4xl font-serif text-center mb-10 text-slate-800">Thanh toán đặt phòng</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-        {/* Order Summary */}
-        <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-          <h2 className="text-2xl font-bold mb-6">Thông tin đơn hàng</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
 
-          {customerInfo && (
-            <div className="mb-6 pb-6 border-b border-border">
-              <h3 className="font-semibold mb-2">Khách hàng:</h3>
-              <p className="text-sm"><span className="text-muted-foreground">Họ tên:</span> {customerInfo.name}</p>
-              <p className="text-sm"><span className="text-muted-foreground">SĐT:</span> {customerInfo.phone}</p>
-              {customerInfo.email && <p className="text-sm"><span className="text-muted-foreground">Email:</span> {customerInfo.email}</p>}
-              <p className="text-sm mt-2"><span className="text-muted-foreground">Loại đặt:</span> {
-                customerInfo.bookingType === 'hourly' ? 'Theo giờ' :
-                  customerInfo.bookingType === 'overnight' ? 'Qua đêm' :
-                    'Theo ngày'
-              }</p>
-              {customerInfo.duration && (
-                <p className="text-sm"><span className="text-muted-foreground">Thời lượng:</span> {customerInfo.duration} {
-                  customerInfo.bookingType === 'hourly' ? 'giờ' :
-                    customerInfo.bookingType === 'daily' ? 'ngày' :
-                      'đêm'
-                }</p>
-              )}
-              <p className="text-sm"><span className="text-muted-foreground">Check-in:</span> {new Date(customerInfo.checkIn).toLocaleString('vi-VN')}</p>
-              {customerInfo.checkOut && <p className="text-sm"><span className="text-muted-foreground">Check-out:</span> {new Date(customerInfo.checkOut).toLocaleString('vi-VN')}</p>}
-              {customerInfo.note && <p className="text-sm mt-2"><span className="text-muted-foreground">Ghi chú:</span> {customerInfo.note}</p>}
-            </div>
-          )}
+        {/* Left Column: Order Summary */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-100">
+            <h2 className="text-xl font-bold mb-6 pb-4 border-b border-slate-100 uppercase tracking-wide text-slate-700">Thông tin đơn hàng</h2>
 
-          {paymentInfo ? (
-            <div className="space-y-4">
-              <div className={`p-4 rounded-lg border ${isPaid ? 'bg-green-100 text-green-800 border-green-300' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                {isPaid ? 'Thanh toán thành công! Cảm ơn bạn đã đặt phòng.' : 'Đơn hàng đã được tạo. Vui lòng thanh toán.'}
-              </div>
-              <div className="border-t pt-4">
-                <p className="font-semibold">Mã đơn hàng:</p>
-                <p className="text-muted-foreground">{paymentInfo.content}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
-                  <div>
-                    <h3 className="font-semibold">{item.product.title}</h3>
-                    <p className="text-sm text-muted-foreground">Số lượng: {item.quantity}</p>
-                  </div>
-                  {/* Access price safely */}
-                  <p className="font-semibold">{(item.product.priceInVND || 0).toLocaleString('vi-VN')} ₫</p>
+            {/* Customer Details */}
+            {customerInfo && (
+              <div className="mb-8 bg-slate-50 p-4 rounded-lg">
+                <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">1</span>
+                  Thông tin khách hàng
+                </h3>
+                <div className="grid grid-cols-1 gap-2 text-sm text-slate-600 ml-8">
+                  <p><span className="font-medium text-slate-900">Họ tên:</span> {customerInfo.name}</p>
+                  <p><span className="font-medium text-slate-900">SĐT:</span> {customerInfo.phone}</p>
+                  {customerInfo.email && <p><span className="font-medium text-slate-900">Email:</span> {customerInfo.email}</p>}
+                  {customerInfo.note && <p className="italic bg-white p-2 rounded border border-slate-100 mt-1">"{customerInfo.note}"</p>}
                 </div>
-              ))}
-
-              <div className="flex justify-between items-center pt-4 border-t mt-4">
-                <span className="text-xl font-bold">Tổng cộng:</span>
-                <span className="text-xl font-bold text-primary">{total.toLocaleString('vi-VN')} ₫</span>
               </div>
+            )}
+
+            {/* Room Details */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">2</span>
+                Chi tiết phòng
+              </h3>
+              {displayItems.map((item, index) => {
+                // Determine duration label from validity or customer info
+                const durationLabel = customerInfo?.duration
+                  ? `${customerInfo.duration}`
+                  : `${item.quantity} ${customerInfo?.bookingType === 'daily' ? 'ngày' : 'giờ'}`;
+
+                // Use item.price (This is the calculated total price for this booking)
+                // Fallback to total if single item
+                const actualPrice = item.price || total;
+
+
+
+                return (
+                  <div key={index} className="ml-8 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-lg text-slate-900">{item.product.title}</h4>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-primary text-lg">{formatCurrency(actualPrice)}</p>
+                      </div>
+                    </div>
+
+                    {/* Booking Specs */}
+                    <div className="bg-slate-50 rounded p-3 text-sm space-y-2 border border-slate-100">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Loại đặt:</span>
+                        <span className="font-medium text-slate-900">
+                          {customerInfo?.bookingType === 'hourly' ? 'Theo giờ' :
+                            customerInfo?.bookingType === 'overnight' ? 'Qua đêm' : 'Theo ngày'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Thời gian:</span>
+                        <span className="font-medium text-slate-900">{durationLabel}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Check-in:</span>
+                        <span className="font-medium text-slate-900">
+                          {customerInfo?.checkIn ? new Date(customerInfo.checkIn).toLocaleString('vi-VN') : '...'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Check-out:</span>
+                        <span className="font-medium text-slate-900">
+                          {customerInfo?.checkOut ? new Date(customerInfo.checkOut).toLocaleString('vi-VN') : '...'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          )}
+
+            {/* Total */}
+            <div className="mt-8 pt-6 border-t border-dashed border-slate-200 flex justify-between items-end">
+              <span className="text-slate-500 font-medium pb-1">Tổng thanh toán</span>
+              <span className="text-3xl font-bold text-primary">{formatCurrency(items.length > 0 ? total : paymentInfo?.amount || 0)}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Payment Section */}
-        <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
-          <h2 className="text-2xl font-bold mb-6">Thanh toán chuyển khoản</h2>
+        {/* Right Column: Payment */}
+        <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-slate-100 h-fit sticky top-24">
+          <h2 className="text-xl font-bold mb-6 pb-4 border-b border-slate-100 uppercase tracking-wide text-slate-700">Thanh toán chuyển khoản</h2>
 
+          {/* Error State */}
           {error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 mb-6">
-              {error}
+            <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-start gap-2 mb-6">
+              <span>⚠️</span>
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()} className="underline ml-auto text-sm">Thử lại</button>
             </div>
           )}
 
-          {!paymentInfo ? (
-            <div className="space-y-6">
-              <p className="text-muted-foreground">
-                Vui lòng nhấn nút bên dưới để tạo đơn hàng và nhận thông tin chuyển khoản ngân hàng.
-              </p>
-              <button
-                onClick={handlePayment}
-                disabled={loading}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Đang xử lý...' : 'Thanh toán với SePay'}
+          {/* Loading State */}
+          {loading && !paymentInfo && (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-slate-500 animate-pulse">Đang tạo thông tin thanh toán...</p>
+            </div>
+          )}
+
+          {/* Expired State */}
+          {isExpired && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">⏰</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Đơn hàng đã hết hạn</h3>
+              <p className="text-slate-500 mb-6">Mã QR đã hết hiệu lực. Vui lòng đặt lại.</p>
+              <button onClick={() => { clearCart(); router.push('/'); }} className="bg-primary text-white w-full py-3 rounded-lg font-bold">
+                Đặt lại phòng
               </button>
             </div>
-          ) : isExpired ? (
-            <div className="text-center py-10 space-y-4">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+          )}
+
+          {/* Success State */}
+          {isPaid && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h3 className="text-2xl font-bold text-red-800">Đơn hàng đã hết hạn!</h3>
-              <p className="text-gray-600">Bạn đã quá thời gian thanh toán (15 phút).</p>
-              <button
-                onClick={() => {
-                  clearCart()
-                  router.push('/')
-                }}
-                className="mt-4 bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary/90"
-              >
-                Đặt lại đơn mới
-              </button>
-            </div>
-          ) : isPaid ? (
-            <div className="text-center py-10 space-y-4">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-green-800">Thanh toán hoàn tất!</h3>
-              <p className="text-gray-600">Chúng tôi đã nhận được thanh toán của bạn.</p>
-              <button onClick={() => router.push('/')} className="mt-4 bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary/90">
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Thanh toán thành công!</h3>
+              <p className="text-slate-500 mb-6">Cảm ơn bạn đã sử dụng dịch vụ.</p>
+              <button onClick={() => router.push('/')} className="bg-primary text-white w-full py-3 rounded-lg font-bold">
                 Về trang chủ
               </button>
             </div>
-          ) : (
-            <div className="space-y-6 text-center flex flex-col">
+          )}
 
-              {/* Timer */}
+          {/* Active Payment State */}
+          {paymentInfo && !isExpired && !isPaid && (
+            <div className="space-y-6">
               {timeLeft !== null && (
-                <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-2 rounded-lg font-bold inline-block mb-4 w-fit mx-auto">
-                  Thời gian còn lại: {formatTime(timeLeft)}
+                <div className="text-center">
+                  <span className="inline-block px-3 py-1 bg-orange-50 text-orange-700 text-sm font-bold rounded-full border border-orange-100">
+                    Hết hạn sau: {formatTime(timeLeft)}
+                  </span>
                 </div>
               )}
 
-              <div className="bg-white p-4 rounded-lg border inline-block mx-auto relative block">
-                {/* QR Code */}
-                <img src={paymentInfo.qrUrl} alt="SePay QR Code" className="w-64 h-64 object-contain" />
+              <div className="flex flex-col items-center">
+                <div className="p-4 bg-white border-2 border-primary/20 rounded-xl shadow-sm mb-4">
+                  <img src={paymentInfo.qrUrl} alt="QR Code" className="w-48 h-48 md:w-56 md:h-56 object-contain mix-blend-multiply" />
+                </div>
+                <p className="text-sm text-center text-primary font-medium animate-pulse">
+                  Đang chờ xác nhận thanh toán...
+                </p>
+              </div>
 
-                {/* Loading indicator */}
-                <div className="mt-4 flex items-center justify-center gap-2 text-primary animate-pulse">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animation-delay-200"></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animation-delay-400"></div>
-                  <span className="text-sm font-semibold ml-2">Đang chờ thanh toán...</span>
+              <div className="space-y-3 text-sm border-t border-slate-100 pt-6">
+                <div className="flex justify-between py-2 border-b border-dashed border-slate-200">
+                  <span className="text-slate-500">Ngân hàng</span>
+                  <span className="font-bold text-slate-800">{paymentInfo.bankBin}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-dashed border-slate-200">
+                  <span className="text-slate-500">Chủ tài khoản</span>
+                  <span className="font-bold text-slate-800 uppercase">{paymentInfo.accountName}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-dashed border-slate-200">
+                  <span className="text-slate-500">Số tài khoản</span>
+                  <span className="font-bold text-slate-800 text-lg tracking-wide">{paymentInfo.accountNumber}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-dashed border-slate-200">
+                  <span className="text-slate-500">Nội dung chuyển khoản</span>
+                  <span className="font-mono font-bold text-primary bg-yellow-50 px-2 py-0.5 rounded">{paymentInfo.content}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-slate-500">Số tiền</span>
+                  <span className="font-bold text-primary text-xl">{formatCurrency(paymentInfo.amount)}</span>
                 </div>
               </div>
 
-              <div className="text-left space-y-3 bg-muted/50 p-6 rounded-lg">
-                <p><span className="font-semibold">Ngân hàng:</span> {paymentInfo.bankBin}</p>
-                <p><span className="font-semibold">Số tài khoản:</span> {paymentInfo.accountNumber}</p>
-                <p><span className="font-semibold">Chủ tài khoản:</span> {paymentInfo.accountName}</p>
-                <p><span className="font-semibold">Số tiền:</span> <span className="text-primary font-bold text-lg">{paymentInfo.amount.toLocaleString('vi-VN')} ₫</span></p>
-                <p><span className="font-semibold">Nội dung chuyển khoản:</span> <span className="font-mono bg-yellow-100 px-2 py-1 rounded text-yellow-800 font-bold">{paymentInfo.content}</span></p>
-              </div>
-
-              <p className="text-sm text-muted-foreground mt-4">
-                * Hệ thống sẽ tự động cập nhật ngay khi nhận được thanh toán. Không cần F5.
+              <p className="text-xs text-center text-slate-400 italic">
+                * Vui lòng nhập đúng nội dung chuyển khoản để hệ thống tự động xác nhận.
               </p>
             </div>
           )}

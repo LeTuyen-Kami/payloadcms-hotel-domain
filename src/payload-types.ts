@@ -75,7 +75,7 @@ export interface Config {
     branches: Branch;
     rooms: Room;
     bookings: Booking;
-    testimonials: Testimonial;
+    amenities: Amenity;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -117,7 +117,7 @@ export interface Config {
     branches: BranchesSelect<false> | BranchesSelect<true>;
     rooms: RoomsSelect<false> | RoomsSelect<true>;
     bookings: BookingsSelect<false> | BookingsSelect<true>;
-    testimonials: TestimonialsSelect<false> | TestimonialsSelect<true>;
+    amenities: AmenitiesSelect<false> | AmenitiesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -277,12 +277,15 @@ export interface Page {
         blockType: 'roomsBlock';
       }
     | {
-        title?: string | null;
-        limit?: number | null;
+        /**
+         * Dán toàn bộ mã nhúng (script và div) từ Elfsight, Trustindex, v.v. vào đây.
+         */
+        embedCode: string;
         id?: string | null;
         blockName?: string | null;
-        blockType: 'testimonialsBlock';
+        blockType: 'googleReviewsBlock';
       }
+    | ContactBlock
   )[];
   meta?: {
     title?: string | null;
@@ -959,6 +962,39 @@ export interface Branch {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactBlock".
+ */
+export interface ContactBlock {
+  title: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  form: string | Form;
+  contactInfo?: {
+    showContactInfo?: boolean | null;
+    overrideContactInfo?: boolean | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'contactBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "rooms".
  */
 export interface Room {
@@ -972,7 +1008,10 @@ export interface Room {
         id?: string | null;
       }[]
     | null;
-  amenities?: ('tv' | 'ac' | 'fridge' | 'hairdryer' | 'wifi' | 'bathtub')[] | null;
+  /**
+   * Chọn hoặc thêm mới tiện ích (như tag input)
+   */
+  amenities?: (string | Amenity)[] | null;
   totalStock: number;
   pricing: {
     priceHourlyFirst2Hours: number;
@@ -993,12 +1032,23 @@ export interface Room {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "amenities".
+ */
+export interface Amenity {
+  id: string;
+  title: string;
+  icon?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bookings".
  */
 export interface Booking {
   id: string;
   status?: ('pending' | 'confirmed' | 'cancelled' | 'completed') | null;
-  type: 'hourly' | 'daily';
+  type: 'hourly' | 'overnight' | 'daily';
   branch: string | Branch;
   room: string | Room;
   checkIn: string;
@@ -1006,21 +1056,8 @@ export interface Booking {
   customerName: string;
   customerPhone: string;
   customerEmail?: string | null;
+  amount?: number | null;
   note?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "testimonials".
- */
-export interface Testimonial {
-  id: string;
-  name: string;
-  content: string;
-  rating?: number | null;
-  image?: (string | null) | Media;
-  source?: ('google' | 'facebook' | 'website') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1141,7 +1178,7 @@ export interface Export {
  */
 export interface Import {
   id: string;
-  collectionSlug: 'pages' | 'posts' | 'categories' | 'rooms' | 'branches' | 'bookings' | 'testimonials' | 'media';
+  collectionSlug: 'pages' | 'posts' | 'categories' | 'rooms' | 'branches' | 'bookings' | 'media';
   importMode?: ('create' | 'update' | 'upsert') | null;
   matchField?: string | null;
   status?: ('pending' | 'completed' | 'partial' | 'failed') | null;
@@ -1378,6 +1415,7 @@ export interface Order {
   note?: string | null;
   sepayTransactionId?: string | null;
   sepayPaymentStatus?: ('unpaid' | 'paid' | 'idled') | null;
+  bookingType?: ('hourly' | 'overnight' | 'daily') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1567,8 +1605,8 @@ export interface PayloadLockedDocument {
         value: string | Booking;
       } | null)
     | ({
-        relationTo: 'testimonials';
-        value: string | Testimonial;
+        relationTo: 'amenities';
+        value: string | Amenity;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1717,14 +1755,14 @@ export interface PagesSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        testimonialsBlock?:
+        googleReviewsBlock?:
           | T
           | {
-              title?: T;
-              limit?: T;
+              embedCode?: T;
               id?: T;
               blockName?: T;
             };
+        contactBlock?: T | ContactBlockSelect<T>;
       };
   meta?:
     | T
@@ -1859,6 +1897,26 @@ export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
   enableIntro?: T;
   introContent?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactBlock_select".
+ */
+export interface ContactBlockSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  form?: T;
+  contactInfo?:
+    | T
+    | {
+        showContactInfo?: T;
+        overrideContactInfo?: T;
+        phone?: T;
+        email?: T;
+        address?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -2092,20 +2150,18 @@ export interface BookingsSelect<T extends boolean = true> {
   customerName?: T;
   customerPhone?: T;
   customerEmail?: T;
+  amount?: T;
   note?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "testimonials_select".
+ * via the `definition` "amenities_select".
  */
-export interface TestimonialsSelect<T extends boolean = true> {
-  name?: T;
-  content?: T;
-  rating?: T;
-  image?: T;
-  source?: T;
+export interface AmenitiesSelect<T extends boolean = true> {
+  title?: T;
+  icon?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2503,6 +2559,7 @@ export interface OrdersSelect<T extends boolean = true> {
   note?: T;
   sepayTransactionId?: T;
   sepayPaymentStatus?: T;
+  bookingType?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2709,16 +2766,6 @@ export interface SiteSetting {
     description?: string | null;
     copyright?: string | null;
   };
-  googleMaps?: {
-    /**
-     * Find your Place ID using Google Place ID Finder
-     */
-    placeId?: string | null;
-    /**
-     * Must have Places API enabled
-     */
-    apiKey?: string | null;
-  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2799,12 +2846,6 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         description?: T;
         copyright?: T;
       };
-  googleMaps?:
-    | T
-    | {
-        placeId?: T;
-        apiKey?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -2855,7 +2896,7 @@ export interface TaskCreateCollectionImport {
       | 'branches'
       | 'rooms'
       | 'bookings'
-      | 'testimonials'
+      | 'amenities'
       | 'redirects'
       | 'forms'
       | 'form-submissions'

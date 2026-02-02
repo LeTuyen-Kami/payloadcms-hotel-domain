@@ -97,7 +97,7 @@ export async function Footer() {
                               <a href={`tel:${branches[0].phone}`} className="hover:text-primary transition-colors">{branches[0].phone}</a>
                            </p>
                            {branches[0].mapLink && (
-                              <a href={branches[0].mapLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline mt-2">
+                              <a href={branches[0].mapLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-primary hover:underline mt-2 whitespace-nowrap">
                                  <ExternalLink className="w-4 h-4" />
                                  Xem chỉ đường trên Google Maps
                               </a>

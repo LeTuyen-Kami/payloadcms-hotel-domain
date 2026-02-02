@@ -114,12 +114,16 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               <div className="pt-8 border-t border-slate-200">
                 <h3 className="text-xl font-serif mb-6">Tiện nghi phòng</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-8">
-                  {amenities?.map((amenity) => (
-                    <div key={amenity} className="flex items-center text-slate-600 text-sm">
-                      <Check className="w-4 h-4 text-primary mr-3 flex-shrink-0" />
-                      <span className="capitalize">{amenity.replace('_', ' ')}</span>
-                    </div>
-                  ))}
+                  {amenities?.map((amenity: any) => {
+                    const title = typeof amenity === 'object' ? amenity.title : amenity
+                    const id = typeof amenity === 'object' ? amenity.id : amenity
+                    return (
+                      <div key={id} className="flex items-center text-slate-600 text-sm">
+                        <Check className="w-4 h-4 text-primary mr-3 flex-shrink-0" />
+                        <span>{title}</span>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>

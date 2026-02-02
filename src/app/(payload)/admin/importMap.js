@@ -53,7 +53,6 @@ import { default as default_82453f5cfa21893e6ad819afa781693d } from '@/component
 import { FolderTypeField as FolderTypeField_3817bf644402e67bfe6577f60ef982de } from '@payloadcms/ui'
 import { RowLabel as RowLabel_ec255a65fa6fa8d1faeb09cf35284224 } from '@/Header/RowLabel'
 import { RowLabel as RowLabel_1f6ff6ff633e3695d348f4f3c58f1466 } from '@/Footer/RowLabel'
-import { default as default_a4230673377a1d6b7965619aa0a8c41b } from '@/components/SyncGoogleReviews'
 import { default as default_5b83c0d03ff747b791bd44d436d1f222 } from '@/components/Graphics/Icon'
 import { default as default_a0dbd59c719a0d4b6169140b0f7e200a } from '@/components/Graphics/Logo'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
@@ -116,7 +115,6 @@ export const importMap = {
   "@payloadcms/ui#FolderTypeField": FolderTypeField_3817bf644402e67bfe6577f60ef982de,
   "@/Header/RowLabel#RowLabel": RowLabel_ec255a65fa6fa8d1faeb09cf35284224,
   "@/Footer/RowLabel#RowLabel": RowLabel_1f6ff6ff633e3695d348f4f3c58f1466,
-  "@/components/SyncGoogleReviews#default": default_a4230673377a1d6b7965619aa0a8c41b,
   "@/components/Graphics/Icon#default": default_5b83c0d03ff747b791bd44d436d1f222,
   "@/components/Graphics/Logo#default": default_a0dbd59c719a0d4b6169140b0f7e200a,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,

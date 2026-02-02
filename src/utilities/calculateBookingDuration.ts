@@ -29,7 +29,8 @@ export function calculateBookingDuration(
 
     case 'daily':
       if (!checkOutDate) return 1 // Default 1 day
-      const days = differenceInDays(checkOutDate, checkInDate)
+      const hoursDaily = differenceInHours(checkOutDate, checkInDate)
+      const days = Math.ceil(hoursDaily / 24)
       return Math.max(days, 1) // Minimum 1 day
 
     case 'overnight':

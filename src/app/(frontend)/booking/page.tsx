@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { calculateBookingDuration, BookingType } from '@/utilities/calculateBookingDuration'
 import { calculateRoomPrice } from '@/utilities/priceUtils'
+import { cn } from '@/utilities/cn'
 
 export default function BookingPage() {
   return (
@@ -97,7 +98,7 @@ function BookingContent() {
       formData.type as 'hourly' | 'daily' | 'overnight',
       checkIn,
       checkOut,
-      formData.type === 'hourly' ? duration : undefined
+      duration // Pass duration for all types (hourly uses it as hours, daily uses it as days/nights)
     )
   }, [product, formData.type, checkIn, checkOut, duration])
 
@@ -161,7 +162,7 @@ function BookingContent() {
         checkIn: checkIn.toISOString(),
         checkOut: finalCheckOut.toISOString(),
         branch: formData.branch,
-        duration: duration,
+        duration: `${duration} ${formData.type === 'hourly' ? 'giờ' : formData.type === 'daily' ? 'ngày' : 'đêm'}`,
         totalPrice: priceResult.totalPrice
       }
       localStorage.setItem('checkout-customer', JSON.stringify(customerData))
@@ -259,24 +260,22 @@ function BookingContent() {
                     {formData.type === 'daily' && '* Check-out trước 12:00 trưa.'}
                   </p>
 
-                  {showDatePicker && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-                      <div className="absolute top-full left-0 mt-2 z-50">
-                        <DateTimePicker
-                          bookingType={formData.type as BookingType}
-                          initialDate={checkIn}
-                          initialDuration={duration}
-                          onApply={(start, end, dur) => {
-                            setCheckIn(start)
-                            if (end) setCheckOut(end)
-                            if (dur) setDuration(dur)
-                          }}
-                          onClose={() => setShowDatePicker(false)}
-                        />
-                      </div>
-                    </>
-                  )}
+                  <div className={cn(showDatePicker ? 'block' : 'hidden')} key={formData.type}>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                    <div className="absolute top-full left-0 mt-2 z-50">
+                      <DateTimePicker
+                        bookingType={formData.type as BookingType}
+                        initialDate={checkIn}
+                        initialDuration={duration}
+                        onApply={(start, end, dur) => {
+                          setCheckIn(start)
+                          if (end) setCheckOut(end)
+                          if (dur) setDuration(dur)
+                        }}
+                        onClose={() => setShowDatePicker(false)}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

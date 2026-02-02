@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, addHours, setHours, setMinutes } from 'date-fns'
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, addHours, addDays, setHours, setMinutes } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Clock, ArrowRight, Calendar as CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,20 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({ bookingType, onA
         if (bookingType !== 'daily') setEndDay(null)
         if (bookingType === 'overnight') setSelectedTime('22:00')
     }, [bookingType])
+
+    // Auto-jump to next valid day for overnight booking
+    // If current hour >= 12 and today is selected, auto-select tomorrow
+    useEffect(() => {
+        if (bookingType !== 'overnight') return
+
+        const currentHour = new Date().getHours()
+        const isTodaySelected = isToday(startDay)
+
+        // If it's past noon and today is selected, jump to tomorrow
+        if (currentHour >= 12 && isTodaySelected) {
+            setStartDay(addDays(new Date(), 1))
+        }
+    }, [bookingType, startDay])
 
     // Generate calendar days
     const monthStart = startOfMonth(currentMonth)
@@ -191,9 +205,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({ bookingType, onA
         }
         if (bookingType === 'daily') {
             if (!endDay) return '1 ngày'
-            const diffTime = Math.abs(endDay.getTime() - startDay.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return `${diffDays} ngày`
+
+            // Calculate using actual check-in/out times to match pricing logic
+            const [hours, minutes] = selectedTime.split(':').map(Number)
+            const start = setMinutes(setHours(startDay, hours), minutes)
+            const effectiveEndDay = endDay
+            const end = setMinutes(setHours(effectiveEndDay, 12), 0)
+
+            const { differenceInHours } = require('date-fns')
+            const diffHours = differenceInHours(end, start)
+            const days = Math.ceil(diffHours / 24)
+
+            return `${Math.max(days, 1)} ngày`
         }
         return ''
     }
@@ -232,7 +255,10 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({ bookingType, onA
                         const isSelected = isStart || isEnd
 
                         const isBeforeToday = day < new Date(new Date().setHours(0, 0, 0, 0))
-                        const isOvernightRestricted = bookingType === 'overnight' && isToday(day)
+                        // Overnight restriction: If current hour >= 12, today is disabled (must select tomorrow)
+                        // If current hour < 12, today is allowed for overnight booking
+                        const currentHour = new Date().getHours()
+                        const isOvernightRestricted = bookingType === 'overnight' && isToday(day) && currentHour >= 12
                         const isDisabled = isBeforeToday || isOvernightRestricted
 
                         return (

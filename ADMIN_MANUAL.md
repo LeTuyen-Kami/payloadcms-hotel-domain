@@ -105,6 +105,45 @@ Quy trình xử lý đơn đặt phòng từ Website:
 
 ---
 
+## 6. API & Tự động hóa (System Operations)
+
+Phần này dành cho bộ phận kỹ thuật để cấu hình các tác vụ tự động và tích hợp thanh toán.
+
+### 6.1. Tự động hủy đơn quá hạn (Cron Job)
+
+Hệ thống có cơ chế tự động quét và hủy các đơn đặt phòng trạng thái `Pending` nếu quá **15 phút** mà chưa thanh toán.
+
+- **Endpoint**: `/api/cron/cancel-bookings`
+- **Method**: `GET`
+- **Authentication**: Yêu cầu Header `Authorization: Bearer <CRON_SECRET>` (Cấu hình trong `.env`).
+- **Tần suất**: Mặc định 5 phút/lần (Cấu hình trong `vercel.json`).
+
+**Cách chạy thủ công (Manual Trigger):**
+
+```bash
+curl -H "Authorization: Bearer <YOUR_SECRET>" https://your-domain.com/api/cron/cancel-bookings
+```
+
+### 6.2. Webhook Thanh toán (SePay)
+
+Hệ thống tích hợp cổng thanh toán SePay để tự động xác nhận đơn hàng khi nhận được tiền.
+
+- **Endpoint**: `/api/sepay/webhook`
+- **Method**: `POST`
+- **Authentication**: Yêu cầu Header `Authorization: Bearer <SEPAY_API_KEY>`.
+- **Cấu hình**:
+  1. Truy cập Dashboard của SePay.
+  2. Cài đặt Webhook URL là `https://your-domain.com/api/sepay/webhook`.
+  3. Copy API Key từ SePay và dán vào biến môi trường `SEPAY_API_KEY` của dự án.
+- **Quy trình hoạt động**:
+  1. Khách chuyển khoản theo QR Code.
+  2. Ngân hàng báo biến động số dư về SePay.
+  3. SePay gọi Webhook về hệ thống.
+  4. Hệ thống tìm đơn hàng (`Orders`) tương ứng và booking (`Bookings`) liên quan.
+  5. Cập nhật trạng thái Booking -> `Confirmed`, Order -> `Paid`.
+
+---
+
 ## Câu hỏi thường gặp
 
 **Q: Tại sao tôi chỉnh số lượng phòng về 0 mà Web vẫn hiện còn phòng?**

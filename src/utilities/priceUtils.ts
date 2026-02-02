@@ -1,4 +1,4 @@
-import { differenceInHours, differenceInMinutes } from 'date-fns'
+import { differenceInHours, differenceInMinutes, differenceInDays } from 'date-fns'
 
 export type PriceConfig = {
   priceHourlyFirst2Hours?: number
@@ -22,7 +22,7 @@ export const calculateRoomPrice = (
   type: BookingType,
   checkIn: Date,
   checkOut: Date | null,
-  durationHours?: number, // Explicit duration for hourly if not calculating from dates
+  durationUnits?: number, // Explicit duration (hours for hourly, days for daily)
 ): PriceResult => {
   const {
     priceHourlyFirst2Hours = 0,
@@ -33,7 +33,7 @@ export const calculateRoomPrice = (
 
   if (type === 'hourly') {
     // Determine duration
-    let hours = durationHours
+    let hours = durationUnits
     if (!hours && checkOut) {
       const diffMinutes = differenceInMinutes(checkOut, checkIn)
       hours = Math.ceil(diffMinutes / 60)
@@ -68,24 +68,27 @@ export const calculateRoomPrice = (
   }
 
   if (type === 'daily') {
-    // For daily, usually 1 unit = 1 day logic based on the user req "12h-12h = 380k"
-    // If multiple days, we arguably multiply.
-    // User requirement: "Gía ngày từ 12h-12h = 380k" -> Implies per day.
-    // We'll calculate days.
-    let days = 1
-    if (checkOut) {
-      const diffHours = differenceInHours(checkOut, checkIn)
-      days = Math.ceil(diffHours / 24)
-      if (days < 1) days = 1
+    let days = durationUnits
+    if (!days) {
+      if (checkOut) {
+        const diffHours = differenceInHours(checkOut, checkIn)
+        days = Math.ceil(diffHours / 24)
+        if (days < 1) days = 1
+      } else {
+        days = 1
+      }
     }
 
-    const total = priceDaily * days
+    // Ensure days is treated as number (it should be, but for TS safety)
+    const finalDays = days || 1
+
+    const total = priceDaily * finalDays
     return {
       totalPrice: total,
-      durationLabel: `${days} ngày`,
+      durationLabel: `${finalDays} ngày`,
       breakdown:
-        days > 1
-          ? `${priceDaily.toLocaleString()}đ x ${days} ngày`
+        finalDays > 1
+          ? `${priceDaily.toLocaleString()}đ x ${finalDays} ngày`
           : `${priceDaily.toLocaleString()}đ / ngày`,
     }
   }

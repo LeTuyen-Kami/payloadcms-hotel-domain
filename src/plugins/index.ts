@@ -102,7 +102,6 @@ export const plugins: Plugin[] = [
       { slug: 'rooms' },
       { slug: 'branches' },
       { slug: 'bookings' },
-      { slug: 'testimonials' },
       { slug: 'media' },
     ],
   }),
@@ -380,6 +379,19 @@ export const plugins: Plugin[] = [
               position: 'sidebar',
             },
             label: 'Trạng thái thanh toán',
+          },
+          {
+            name: 'bookingType',
+            type: 'select',
+            options: [
+              { label: 'Theo giờ', value: 'hourly' },
+              { label: 'Qua đêm', value: 'overnight' },
+              { label: 'Theo ngày', value: 'daily' },
+            ],
+            label: 'Loại đặt phòng',
+            admin: {
+              position: 'sidebar',
+            },
           },
         ],
       }),

@@ -11,6 +11,7 @@ import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta } from '@/utilities/generateMeta'
 import PageClient from './page.client'
+import { getCachedGlobal } from '@/utilities/getGlobals'
 import { LivePreviewListener } from '@/components/LivePreviewListener'
 
 export async function generateStaticParams() {
@@ -66,6 +67,8 @@ export default async function Page({ params: paramsPromise }: Args) {
 
   const { hero, layout } = page
 
+  const siteSettings = await getCachedGlobal('site-settings', 1)()
+
   return (
     <article className="pt-20 pb-24">
       <PageClient />
@@ -75,7 +78,7 @@ export default async function Page({ params: paramsPromise }: Args) {
       {draft && <LivePreviewListener />}
 
       <RenderHero {...hero} />
-      <RenderBlocks blocks={layout} />
+      <RenderBlocks blocks={layout} siteSettings={siteSettings} />
     </article>
   )
 }

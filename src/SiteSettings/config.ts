@@ -92,39 +92,5 @@ export const SiteSettings: GlobalConfig = {
         },
       ],
     },
-    {
-      name: 'googleMaps',
-      type: 'group',
-      label: 'Tích hợp Google Maps',
-      fields: [
-        {
-          name: 'placeId',
-          type: 'text',
-          label: 'Google Place ID',
-          required: false,
-          admin: {
-            description: 'Find your Place ID using Google Place ID Finder',
-          },
-        },
-        {
-          name: 'apiKey',
-          type: 'text',
-          label: 'Google Maps API Key',
-          required: false,
-          admin: {
-            description: 'Must have Places API enabled',
-          },
-        },
-        {
-          name: 'syncButton',
-          type: 'ui',
-          admin: {
-            components: {
-              Field: '@/components/SyncGoogleReviews',
-            },
-          },
-        },
-      ],
-    },
   ],
 }

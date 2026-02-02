@@ -5,6 +5,7 @@ import {
   revalidateRoomFromBooking,
   revalidateRoomFromBookingDelete,
 } from './Bookings/hooks/revalidateRoomFromBooking'
+import { populateBookingAmount } from './Bookings/hooks/populateBookingAmount'
 
 export const Bookings: CollectionConfig = {
   slug: 'bookings',
@@ -21,16 +22,19 @@ export const Bookings: CollectionConfig = {
   admin: {
     useAsTitle: 'customerName',
     defaultColumns: [
+      'createdAt',
       'customerName',
       'customerPhone',
       'room',
       'type',
       'checkIn',
       'checkOut',
+      'amount',
       'status',
     ],
   },
   hooks: {
+    beforeChange: [populateBookingAmount],
     afterChange: [
       revalidateRoomFromBooking,
       async ({ doc, req, operation }) => {
@@ -69,8 +73,9 @@ export const Bookings: CollectionConfig = {
             )
 
             // Simple pricing logic
-            const price = room.pricing.priceHourlyFirst2Hours
-            const total = price * hours
+            // Use doc.amount if calculated by beforeChange hook, else fallback to simplistic calc
+            const total = doc.amount ? doc.amount : room.pricing.priceHourlyFirst2Hours * hours
+            const price = total / hours // approximate unit price for order item
 
             // 4. Create Paid Order
             await req.payload.create({
@@ -130,6 +135,7 @@ export const Bookings: CollectionConfig = {
       label: 'Loại đặt phòng',
       options: [
         { label: 'Theo giờ (Hourly)', value: 'hourly' },
+        { label: 'Qua đêm (Overnight)', value: 'overnight' },
         { label: 'Theo ngày (Daily)', value: 'daily' },
       ],
       required: true,
@@ -186,6 +192,14 @@ export const Bookings: CollectionConfig = {
       name: 'customerEmail',
       type: 'email',
       label: 'Email',
+    },
+    {
+      name: 'amount',
+      type: 'number',
+      label: 'Số tiền (VNĐ)',
+      admin: {
+        position: 'sidebar',
+      },
     },
     {
       name: 'note',

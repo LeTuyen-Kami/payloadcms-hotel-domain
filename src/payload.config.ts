@@ -19,7 +19,7 @@ import { getServerSideURL } from './utilities/getURL'
 import { Branches } from './collections/Branches'
 import { Rooms } from './collections/Rooms'
 import { Bookings } from './collections/Bookings'
-import { Testimonials } from './collections/Testimonials'
+import { Amenities } from './collections/Amenities'
 import { SiteSettings } from './SiteSettings/config'
 
 const filename = fileURLToPath(import.meta.url)
@@ -156,7 +156,7 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.DATABASE_URL || '',
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Branches, Rooms, Bookings, Testimonials],
+  collections: [Pages, Posts, Media, Categories, Users, Branches, Rooms, Bookings, Amenities],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer, SiteSettings],
   plugins,

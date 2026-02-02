@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         items: cartItems.map((item: any) => ({
           product: item.product.id,
           quantity: item.quantity,
-          price: item.product.priceInVND,
+          price: item.price || item.product.priceInVND,
         })),
         sepayPaymentStatus: 'unpaid',
 
@@ -75,6 +75,7 @@ export async function POST(req: Request) {
         bookingDuration: `${bookingDetails.duration} ${bookingDetails.bookingType === 'hourly' ? 'giờ' : bookingDetails.bookingType === 'daily' ? 'ngày' : 'đêm'}`,
         checkIn: bookingDetails.checkIn,
         checkOut: bookingDetails.checkOut,
+        bookingType: bookingDetails.bookingType || 'hourly', // Save booking type
       },
     })
 

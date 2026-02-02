@@ -10,7 +10,8 @@ import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
 import { Pricing } from '../../blocks/Pricing/config'
 import { RoomsBlock } from '../../blocks/RoomsBlock/config'
-import { TestimonialsBlock } from '../../blocks/TestimonialsBlock/config'
+import { GoogleReviewsBlock } from '../../blocks/GoogleReviews/config'
+import { ContactBlock } from '../../blocks/Contact/config'
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
 import { populatePublishedAt } from '../../hooks/populatePublishedAt'
@@ -90,7 +91,8 @@ export const Pages: CollectionConfig<'pages'> = {
                 Archive,
                 FormBlock,
                 RoomsBlock,
-                TestimonialsBlock,
+                GoogleReviewsBlock,
+                ContactBlock,
               ],
               required: true,
               admin: {

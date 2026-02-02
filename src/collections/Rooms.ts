@@ -124,17 +124,13 @@ export const Rooms: CollectionConfig = {
     },
     {
       name: 'amenities',
-      type: 'select',
+      type: 'relationship',
+      relationTo: 'amenities',
       label: 'Tiện ích phòng',
       hasMany: true,
-      options: [
-        { label: 'Smart TV', value: 'tv' },
-        { label: 'AC', value: 'ac' },
-        { label: 'Fridge', value: 'fridge' },
-        { label: 'Hair Dryer', value: 'hairdryer' },
-        { label: 'Wifi', value: 'wifi' },
-        { label: 'Bathtub', value: 'bathtub' },
-      ],
+      admin: {
+        description: 'Chọn hoặc thêm mới tiện ích (như tag input)',
+      },
     },
 
     {
