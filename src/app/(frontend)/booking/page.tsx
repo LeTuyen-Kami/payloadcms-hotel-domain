@@ -262,19 +262,17 @@ function BookingContent() {
 
                   <div className={cn(showDatePicker ? 'block' : 'hidden')} key={formData.type}>
                     <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
-                    <div className="absolute top-full left-0 mt-2 z-50">
-                      <DateTimePicker
-                        bookingType={formData.type as BookingType}
-                        initialDate={checkIn}
-                        initialDuration={duration}
-                        onApply={(start, end, dur) => {
-                          setCheckIn(start)
-                          if (end) setCheckOut(end)
-                          if (dur) setDuration(dur)
-                        }}
-                        onClose={() => setShowDatePicker(false)}
-                      />
-                    </div>
+                    <DateTimePicker
+                      bookingType={formData.type as BookingType}
+                      initialDate={checkIn}
+                      initialDuration={duration}
+                      onApply={(start, end, dur) => {
+                        setCheckIn(start)
+                        if (end) setCheckOut(end)
+                        if (dur) setDuration(dur)
+                      }}
+                      onClose={() => setShowDatePicker(false)}
+                    />
                   </div>
                 </div>
               </div>
